@@ -21,9 +21,6 @@ class SaveBrowser(Browser):
             with open(SAVE_PATH, 'rb') as f:
                 # Load file
                 data = pickle.load(f)
-                # Load credentials
-                for c in data['creds']:
-                    self.driver.add_credential(c)
                 # Go to last page
                 last_page = data['url']
                 self.driver.get(last_page)
@@ -43,7 +40,6 @@ class SaveBrowser(Browser):
         # Initialize data
         save_data = {
             'url':self.driver.current_url,
-            'creds':self.driver.get_credentials()
             }
         # Save valid cookies
         cookies = self.driver.get_cookies()
