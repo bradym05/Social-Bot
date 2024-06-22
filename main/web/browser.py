@@ -1,6 +1,7 @@
 # Dependencies
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.virtual_authenticator import VirtualAuthenticatorOptions
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -8,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from main.web.socials import BaseSocial, Instagram
 from main.inputs import Typer
-from typing import Dict
+from typing import Dict, List
 
 import time
 import random
@@ -60,7 +61,7 @@ class Browser:
         # Submit after filling out fields
         WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))).click()
     # Scroll through feed, return array of posts
-    def feed_step(self, post_count:int=6):
+    def feed_step(self, post_count:int=6) -> List[WebElement]:
         # Check current page
         if self.driver.current_url == self.platform.login_url:
             # Find and click feed button
@@ -92,7 +93,7 @@ class Browser:
         # Return selected posts
         return selected_posts
     # Open the given post
-    def open_post(self, post_anchor:webdriver.remote.webelement.WebElement, new_tab:bool=False):
+    def open_post(self, post_anchor:WebElement, new_tab:bool=True):
         # Get currently opened post
         current_post = getattr(self, "_current_post", False)
         # Check if open already
@@ -103,6 +104,8 @@ class Browser:
             if current_post:
                 # Close existing post
                 self.close_post()
+            # Random delay
+            time.sleep(random.random()/10)
             # Update current post
             self._current_post = post_anchor
             self._new_tab = new_tab
@@ -116,6 +119,8 @@ class Browser:
             else:
                 # Click the post
                 post_anchor.click()
+            # Update post url
+            self._post_url = str(post_url)
     # Close current post
     def close_post(self):
         # Check if post is open
@@ -128,8 +133,9 @@ class Browser:
         # Reset variables
         self._current_post = None
         self._new_tab = None
+        self._post_url = None
     # Describe the given post
-    def describe_post(self, post_anchor) -> str | None:
+    def describe_post(self, post_anchor:WebElement) -> str | None:
         # Get _aagv class
         post_info = post_anchor.find_element(by=By.CLASS_NAME, value="_aagv")
         # Validate
@@ -141,9 +147,7 @@ class Browser:
                 # Get and return image description
                 return image_info.get_attribute("alt")
     # Like the given post
-    def like_post(self, post_anchor):
-        # Random delay
-        time.sleep(random.random()/10)
+    def like_post(self, post_anchor:WebElement):
         # Open post
         self.open_post(post_anchor=post_anchor, new_tab=True)
         # Find like button
@@ -159,3 +163,42 @@ class Browser:
             time.sleep(random.random()/20)
             # Press button
             like_button.click()
+    # Get all comments from the comment section of the given post
+    def get_comments(self, post_anchor:WebElement) -> List[WebElement]:
+        # Open post
+        self.open_post(post_anchor=post_anchor, new_tab=True)
+        # Find the comments link
+        all_links = self.driver.find_elements(by=By.TAG_NAME, value="a")
+        comment_section = None
+        for link in all_links:
+            # Get url
+            href = link.get_attribute("href")
+            # Check if url leads to post comments
+            if href and str(href) == (self._post_url + "/comments/"):
+                comment_section = link
+                break
+        # Check if link was found
+        if comment_section:
+            # Random delay
+            time.sleep(random.random()/5)
+            # Click link
+            comment_section.click()
+        # Find comment section
+        comment_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "x4h1yfo")))
+        comment_section = comment_section.find_element(by=By.CLASS_NAME, value=str(self.platform.comments))
+        # Return all comments
+        return comment_section and comment_section.find_elements(by=By.TAG_NAME, value="div")
+    # Comment on the given post
+    def comment_post(self, post_anchor:WebElement, comment:str):
+        # Open post
+        self.open_post(post_anchor=post_anchor, new_tab=True)
+        # Get comment section input field
+        comment_input = self.driver.find_element(by=By.TAG_NAME, value="form")
+        comment_input.click()
+        comment_input = comment_input and comment_input.find_element(by=By.TAG_NAME, value="textarea")
+        # Validate comment input
+        if comment_input:
+            # Type in comment
+            self.typer.type_query(comment, comment_input)
+            # Submit after typing comment
+            self.on_type(comment, Keys.ENTER, comment_input)
