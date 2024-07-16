@@ -1,3 +1,9 @@
 
 *.pkl
 test.py
+***REMOVED***.py
+/main/llm/llama_cpp_files
+llama.log
+*.pyc
+*.pyc
+main/web/__pycache__/browser.cpython-312.pyc

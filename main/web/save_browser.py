@@ -11,9 +11,12 @@ LOAD_KEYS = []
 
 # Declare save browser subclass
 class SaveBrowser(Browser):
-    # Initialize from superclass
+    # Initialize object
     def __init__(self, *args, **kwargs):
+        # Initialize from superclass
         super(SaveBrowser, self).__init__(*args, **kwargs)
+        # Initialize variables
+        self.custom_data = {}
     # Overwrite login function
     def login(self):
         # Load data
@@ -30,17 +33,30 @@ class SaveBrowser(Browser):
                         if float(c['expiry']) < time():
                             continue
                     self.driver.add_cookie(c)
+                # Remove loaded keys
+                data.pop('url')
+                data.pop('cookies')
+                # Load custom data
+                for k, v in data.items():
+                    self.custom_data[k] = v
                 # Reload page
                 self.driver.refresh()
         else:
             # Call base function
             Browser.login(self)
+    # Add custom save data
+    def save_data(self, key, val):
+        self.custom_data[key] = val
+    # Get custom saved data
+    def get_data(self, key):
+        if key in self.custom_data:
+            return self.custom_data[key]
+        return False
     # Overwrite close function
     def _close(self):
         # Initialize data
-        save_data = {
-            'url':self.driver.current_url,
-            }
+        save_data = self.custom_data
+        save_data['url'] = self.driver.current_url
         # Save valid cookies
         cookies = self.driver.get_cookies()
         valid = []

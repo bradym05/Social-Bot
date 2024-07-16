@@ -1,0 +1,6 @@
+python>=3.8
+selenium==4.21.0
+numpy==2.0.0
+langchain_community==0.2.5
+llama_cpp_python==0.2.81
+better_profanity==0.7.0
