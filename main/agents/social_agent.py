@@ -1,7 +1,7 @@
 # Dependencies
 from main.web import Browser
 from main.llm import BaseLLM
-from main.agents import SearchAgent
+from main.agents.search_agent import SearchAgent
 from better_profanity import profanity
 from typing import Dict
 
@@ -28,6 +28,8 @@ class SocialAgent(SearchAgent):
         max_total_comment_chars:int=200,
         max_description_chars:int=100,
         min_like_interest:int=50,
+        min_follow_interest:int=90,
+        max_follow_accounts:int=4,
         dislike_comment_interest:int=20,
         like_comment_interest:int=75,
         break_chance:int=10,
@@ -42,6 +44,8 @@ class SocialAgent(SearchAgent):
         self.max_total_comment_chars = max_total_comment_chars
         self.max_description_chars = max_description_chars
         self.min_like_interest = min_like_interest
+        self.min_follow_interest = min_follow_interest
+        self.max_follow_accounts = max_follow_accounts
         self.dislike_comment_interest = dislike_comment_interest
         self.like_comment_interest = like_comment_interest
         self.break_chance = max(min(break_chance, 100), 0)
@@ -199,7 +203,7 @@ class SocialAgent(SearchAgent):
                     post_information = [image_description, search_results, processed_description, processed_comments]
                     for info in post_information:
                         if len(info) > 0:
-                            messages.append(info)                    
+                            messages.append(info)
                     # Finally, add expected output format
                     messages.append("[YOUR OUTPUT]:\nInterest: [YOUR % OF INTEREST]\nComment: [YOUR COMMENT]")
                     # Get LLM output
@@ -228,6 +232,17 @@ class SocialAgent(SearchAgent):
                             # Make comment
                             print("MAKING COMMENT")
                             self.browser.comment_post(post_anchor=post, comment=comment)
+                        # Follow account if interest is atleast 90%
+                        if interest >= self.min_follow_interest:
+                            # Follow
+                            print("FOLLOWING ACCOUNT")
+                            self.browser.follow_profile(post_anchor=post)
+                            # Determine whether or not to follow other accounts on random chance
+                            if random.random() > 0.5:
+                                # Open profile
+                                self.browser.open_profile(post_anchor=post)
+                                # Follow other accounts
+                                self.browser.follow_profile_following(count=random.randrange(1, self.max_follow_accounts))
                     # Wait on post
                     time.sleep((1 + random.random()) * (2 + random.random()))
                     # Close post

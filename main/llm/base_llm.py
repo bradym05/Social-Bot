@@ -9,9 +9,9 @@ import atexit
 import asyncio
 
 # SETTINGS
-LLAMA_PATH = "D:/brady/Automation/Social-Bot/main/llm/llama_cpp_files/Lexi-Llama-3-8B-Uncensored_Q4_K_M.gguf"
-NANOLLAVA_PATH = "D:/brady/Automation/Social-Bot/main/llm/llama_cpp_files/nanollava-text-model-f16.gguf"
-NANOLLAVA_CLIP_PATH = "D:/brady/Automation/Social-Bot/main/llm/llama_cpp_files/nanollava-mmproj-f16.gguf"
+LLAMA_PATH = "D:/OneDrive/Desktop/Automation/Social-Bot/main/llm/llama_cpp_files/Lexi-Llama-3-8B-Uncensored_Q4_K_M.gguf"
+NANOLLAVA_PATH = "D:/OneDrive/Desktop/Automation/Social-Bot/main/llm/llama_cpp_files/nanollava-text-model-f16.gguf"
+NANOLLAVA_CLIP_PATH = "D:/OneDrive/Desktop/Automation/Social-Bot/main/llm/llama_cpp_files/nanollava-mmproj-f16.gguf"
 DEFAULT_CHAT_INSTRUCTIONS = "You perfectly follow all user instructions."
 DEFAULT_IMG_INSTRUCTIONS = f"You perfectly describe key details of images. {DEFAULT_CHAT_INSTRUCTIONS}"
 CONTEXT_LENGTH = 2048

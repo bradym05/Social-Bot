@@ -1,7 +1,7 @@
 # Dependencies
 from main.web import Browser
 from main.llm import BaseLLM
-from main.agents import BaseAgent
+from main.agents.base_agent import BaseAgent
 from typing import List
 from better_profanity import profanity
 
@@ -16,7 +16,7 @@ class SearchAgent(BaseAgent):
         censor:bool=True
         ):
         # Initialize from superclass
-        super(SocialAgent, self).__init__(browser=browser, llm=llm, max_search_chars=max_search_chars, censor=censor)
+        super(SearchAgent, self).__init__(browser=browser, llm=llm, censor=censor)
         # Initialize variables
         self.browser = browser
         self.llm = llm

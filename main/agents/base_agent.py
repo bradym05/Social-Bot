@@ -16,5 +16,4 @@ class BaseAgent:
         # Initialize variables
         self.browser = browser
         self.llm = llm
-        self.max_search_chars = max_search_chars
         self.censor = censor

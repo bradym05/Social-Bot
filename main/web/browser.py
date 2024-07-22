@@ -23,6 +23,8 @@ class Browser:
         self,
         credentials:Dict['username':str, 'password':str],
         platform:BaseSocial=Instagram,
+        timeout_exit:bool=True,
+        timeout_callback:Optional[callable]=False
         ):
         # Initialize variables
         self.driver = webdriver.Chrome()
@@ -30,6 +32,8 @@ class Browser:
         self.typer = Typer(type_callback=self.on_type)
         self.platform = platform
         self.credentials = credentials
+        self.timeout_exit = timeout_exit
+        self.timeout_callback = timeout_callback
         # Setup virtual authenticator
         self.driver.add_virtual_authenticator(
             VirtualAuthenticatorOptions()
@@ -41,6 +45,18 @@ class Browser:
     # Close connection on exit
     def _close(self):
         self.driver.quit()
+    # Callback on driver timeout exception
+    def _on_timeout(self, e):
+        # Output timeout error
+        print('\033[1m' + "TIMEOUT EXCEPTION" + '\033[0m')
+        print(str(e))
+        # Check for timeout callback
+        if getattr(self, "timeout_callback", False):
+            self.timeout_callback()
+        # Check if exit on timeout is enabled
+        if self.timeout_exit:
+            # Exit program
+            exit()
     # Callback for typer
     def on_type(self, query:str, character:str, element:EC.WebElement):
         if character == "":
@@ -52,13 +68,19 @@ class Browser:
         # Load site
         self.driver.get(self.platform.login_url)
         # Get input fields
-        username = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username']")))
-        password = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='password']")))
+        try:
+            username = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username']")))
+            password = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='password']")))
+        except TimeoutException as e:
+            self._on_timeout(e)
         # Type in login credentials
         self.typer.type_query(self.credentials['username'], username)
         self.typer.type_query(self.credentials['password'], password)
         # Submit after filling out fields
-        WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))).click()
+        try:
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))).click()
+        except TimeoutException as e:
+            self._on_timeout(e)
     # Search the web for the given query, returns top sites
     def search_web(self, query:str) -> Dict[str, str]:
         final_results = {}
@@ -70,7 +92,10 @@ class Browser:
             self.driver.switch_to.new_window('tab')
             self.driver.get("https://www.google.com")
             # Find search bar
-            search_bar = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.NAME, "q")))
+            try:
+                search_bar = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.NAME, "q")))
+            except TimeoutException as e:
+                self._on_timeout(e)
             # Wait randomly
             time.sleep(random.random())
             search_bar.click()
@@ -82,17 +107,23 @@ class Browser:
                 lines = [query]
             for l in lines:
                 for char in l.strip():
-                    if char.isalpha() or char.isdigit() or char == " ":
+                    if (char.isalnum() and char.isascii) or char == " ":
                         typed += char
-                        search_bar.send_keys(char)
+                        try:
+                            search_bar.send_keys(char)
+                        except:
+                            continue
             # Validate typed query
             if len(typed) > 0:
                 # Wait randomly
                 time.sleep(random.random())
                 # Search and get result container
                 search_bar.submit()
-                results_container = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.ID, "search")))
-                results_container = WebDriverWait(results_container, 10).until(EC.visibility_of_element_located((By.ID, "rso")))
+                try:
+                    results_container = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.ID, "search")))
+                    results_container = WebDriverWait(results_container, 10).until(EC.visibility_of_element_located((By.ID, "rso")))
+                except TimeoutException as e:
+                    self._on_timeout(e)
                 # Get results from container
                 all_results = results_container.find_elements(By.TAG_NAME, "div")
                 # Iterate over all results
@@ -119,7 +150,10 @@ class Browser:
         # Check current page
         if self.driver.current_url == self.platform.login_url:
             # Find and click feed button
-            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.NAME, self.platform.feed_button))).click()
+            try:
+                WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.NAME, self.platform.feed_button))).click()
+            except TimeoutException as e:
+                self._on_timeout(e)
         elif str(self.driver.current_url) != self.platform.feed_url:
             # Go straight to feed
             self.driver.get(self.platform.feed_url)
@@ -192,7 +226,10 @@ class Browser:
     # Get post image
     def get_post_image(self, post_anchor:WebElement) -> WebElement | None:
         # Get _aagv class
-        post_info = WebDriverWait(post_anchor, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, "_aagv")))
+        try:
+            post_info = WebDriverWait(post_anchor, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, "_aagv")))
+        except TimeoutException as e:
+            self._on_timeout(e)
         # Validate
         if post_info:
             # Get image info from _aagv class
@@ -231,7 +268,10 @@ class Browser:
         # Open post
         self.open_post(post_anchor=post_anchor, new_tab=True)
         # Find like button
-        like_button = WebDriverWait(self.driver, 25).until(EC.presence_of_element_located((By.CLASS_NAME, self.platform.like_button)))
+        try:
+            like_button = WebDriverWait(self.driver, 25).until(EC.presence_of_element_located((By.CLASS_NAME, self.platform.like_button)))
+        except TimeoutException as e:
+            self._on_timeout(e)
         like_button = like_button.find_element(by=By.TAG_NAME, value="div").find_element(by=By.TAG_NAME, value="div")
         # Check if button was found
         if like_button:
@@ -243,12 +283,123 @@ class Browser:
             time.sleep(random.random()/20)
             # Press button
             like_button.click()
+    # Get profile buttons of given post
+    def get_profile_buttons(self, post_anchor:WebElement) -> List[WebElement]:
+        # Open post
+        self.open_post(post_anchor=post_anchor, new_tab=True)
+        # Find comment section
+        try:
+            comment_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "x4h1yfo")))
+        except TimeoutException as e:
+            self._on_timeout(e)
+        comment_section = comment_section.find_element(by=By.CLASS_NAME, value=str(self.platform.comments))
+        # Get post profile from comment section
+        post_profile = comment_section.find_element(by=By.CLASS_NAME, value="xyinxu5")
+        # Get buttons from post profile
+        try:
+            profile_buttons = WebDriverWait(comment_section, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "x1i10hfl")))
+        except TimeoutException as e:
+            self._on_timeout(e)
+        # Return results
+        return profile_buttons
+    # Follow the account who posted the given post
+    def follow_profile(self, post_anchor:WebElement):
+        # Get profile buttons
+        profile_buttons = self.get_profile_buttons(post_anchor=post_anchor)
+        # Find follow button
+        follow_button = False
+        for button in profile_buttons:
+            if button.get_attribute("innerText") == "Follow":
+                follow_button = button
+                break
+        # Check if follow button was found
+        if follow_button:
+            # Random delay
+            time.sleep(random.random()/20)
+            # Press follow button
+            follow_button.click()
+    # Open the profile of the account who posted the given post
+    def open_profile(self, post_anchor:WebElement):
+        # Get profile buttons
+        profile_buttons = self.get_profile_buttons(post_anchor=post_anchor)
+        # Find profile button
+        page_button = False
+        for button in profile_buttons:
+            if button.get_attribute("innerText") != "Follow" and button.get_attribute("innerText") != "Following":
+                page_button = button
+                break
+        # Check if profile button was found
+        if page_button:
+            # Random delay
+            time.sleep(random.random()/20)
+            # Press page button
+            page_button.click()
+            # Wait for page to load
+            time.sleep(5)
+    # Follow people who are followed by the currently opened profile
+    def follow_profile_following(self, count:int=1):
+        # Get account buttons
+        try:
+            account_buttons = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "x1i10hfl")))
+        except TimeoutException as e:
+            self._on_timeout(e)
+        # Find following button
+        following_button = False
+        for button in account_buttons:
+            inner_text = button.get_attribute("innerText")
+            if inner_text and inner_text.find("following") > -1:
+                following_button = button
+                break
+        # Check if following button was found
+        if following_button:
+            # Random delay
+            time.sleep(random.random()/20)
+            # Press following button
+            following_button.click()
+            # Wait until loaded
+            time.sleep(1 + random.random())
+            # Get list of accounts
+            try:
+                possible_divs = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located((By.CLASS_NAME, str(self.platform.popup))))
+                popup_div = False
+                for div in possible_divs:
+                    inner_text = div.get_attribute("innerText")
+                    leading_text = inner_text.splitlines()[0]
+                    if leading_text == "Following":
+                        popup_div = div
+                        break
+                if popup_div:
+                    followers_container = WebDriverWait(popup_div, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "x7r02ix")))
+                    account_containers = WebDriverWait(followers_container, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, str(self.platform.account))))
+            except TimeoutException as e:
+                self._on_timeout(e)
+            # Get follow buttons from account containers
+            follow_buttons = []
+            for account in account_containers:
+                button = account.find_element(by=By.TAG_NAME, value="button")
+                if button.get_attribute("innerText") == "Follow":
+                    follow_buttons.append(button)
+            # Validate found buttons
+            if len(follow_buttons) > 0:
+                # Clamp count
+                count = min(count, len(follow_buttons))
+                # Follow the given number of accounts
+                for i in range(count):
+                    index = random.randrange(0, len(follow_buttons))
+                    button = follow_buttons.pop(index)
+                    # Wait random delay
+                    time.sleep(random.random()/20)
+                    # Click follow button
+                    button.click()
     # Get all comments from the comment section of the given post
     def get_comments(self, post_anchor:WebElement) -> List[str]:
         # Open post
         self.open_post(post_anchor=post_anchor, new_tab=True)
         # Find comment section
-        comment_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "x4h1yfo")))
+        try:
+            comment_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "x4h1yfo")))
+        except TimeoutException as e:
+            self._on_timeout(e)
         comment_section = comment_section.find_element(by=By.CLASS_NAME, value=str(self.platform.comments))
         combined_comments = comment_section.get_attribute("innerText")
         # Split comments by the Reply button
@@ -278,7 +429,10 @@ class Browser:
         # Open post
         self.open_post(post_anchor=post_anchor, new_tab=True)
         # Get comment section input field
-        comment_input = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "form")))
+        try:
+            comment_input = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "form")))
+        except TimeoutException as e:
+            self._on_timeout(e)
         #comment_input = self.driver.find_element(by=By.TAG_NAME, value="form")
         comment_input.click()
         comment_input = comment_input and comment_input.find_element(by=By.TAG_NAME, value="textarea")
