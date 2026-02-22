@@ -18,6 +18,7 @@ class SaveBrowser(Browser):
         super(SaveBrowser, self).__init__(*args, **kwargs)
         # Initialize variables
         self.custom_data = {}
+        self._logged_in = False
     # Overwrite login function
     def login(self):
         # Load data
@@ -42,9 +43,11 @@ class SaveBrowser(Browser):
                     self.custom_data[k] = v
                 # Reload page
                 self.driver.refresh()
+                self._logged_in = True
         else:
-            # Call base function
-            Browser.login(self)
+            # Call base function, store result
+            self._logged_in = Browser.login(self)
+        return self._logged_in
     # Add custom save data
     def save_data(self, key, val):
         self.custom_data[key] = val
@@ -55,26 +58,28 @@ class SaveBrowser(Browser):
         return False
     # Overwrite close function
     def _close(self):
-        # Initialize data
-        save_data = self.custom_data
-        save_data['url'] = self.driver.current_url
-        # Save valid cookies
-        cookies = self.driver.get_cookies()
-        valid = []
-        for c in cookies:
-            if 'value' in c and c['value'].find('\\') == -1:
-                valid.append(c)
-        # Reference valid cookies
-        save_data['cookies'] = valid
-        # Write save file accordingly
-        if path.exists(SAVE_PATH):
-            mode = 'wb'
-        else:
-            mode = 'xb'
-            # Check if folder exists before creating new save file
-            if not path.exists("datastore"):
-                mkdir(SAVE_FOLDER)
-        with open(SAVE_PATH, mode) as f:
-            pickle.dump(save_data, f)
-        # Close normally
-        Browser._close(self)
+        # Make sure login was successful first
+        if self._logged_in:
+            # Initialize data
+            save_data = self.custom_data
+            save_data['url'] = self.driver.current_url
+            # Save valid cookies
+            cookies = self.driver.get_cookies()
+            valid = []
+            for c in cookies:
+                if 'value' in c and c['value'].find('\\') == -1:
+                    valid.append(c)
+            # Reference valid cookies
+            save_data['cookies'] = valid
+            # Write save file accordingly
+            if path.exists(SAVE_PATH):
+                mode = 'wb'
+            else:
+                mode = 'xb'
+                # Check if folder exists before creating new save file
+                if not path.exists("datastore"):
+                    mkdir(SAVE_FOLDER)
+            with open(SAVE_PATH, mode) as f:
+                pickle.dump(save_data, f)
+            # Close normally
+            Browser._close(self)

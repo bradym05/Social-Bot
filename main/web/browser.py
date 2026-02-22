@@ -81,6 +81,7 @@ class Browser:
         # Submit after filling out fields
         try:
             loginButton = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div[aria-label='Log In']")))
+            time.sleep(random.random())
             loginButton.click()
         except TimeoutException as e:
             self._on_timeout(e)
@@ -89,6 +90,14 @@ class Browser:
             WebDriverWait(self.driver, 10).until(EC.staleness_of(loginButton))
         except TimeoutException as e:
             self._on_timeout(e)
+        # Wait for continue button, catch timeout error WITHOUT exiting program (button doesn't always appear)
+        continueButton = False
+        try:
+            continueButton = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div[aria-label='Continue']")))
+        except TimeoutException as e:
+            print("Login Successful")
+        # Check if continue button was found
+        return not continueButton
 
     # Search the web for the given query, returns top sites
     def search_web(self, query:str) -> Dict[str, str]:
@@ -102,28 +111,26 @@ class Browser:
             self.driver.get("https://www.google.com")
             # Find search bar
             try:
-                search_bar = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='search']")))
+                search_bar = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "textarea[name='q']")))
             except TimeoutException as e:
                 self._on_timeout(e)
             # Wait randomly
             time.sleep(random.random())
             search_bar.click()
             time.sleep(random.random())
-            # Type search query
+            # Generate typable search query (only characters in the BMP)
             lines = query.splitlines()
-            typed = ""
+            typable = ""
             if len(lines) == 0:
                 lines = [query]
             for l in lines:
                 for char in l.strip():
                     if (char.isalnum() and char.isascii) or char == " ":
-                        typed += char
-                        try:
-                            search_bar.send_keys(char)
-                        except:
-                            continue
-            # Validate typed query
-            if len(typed) > 0:
+                        typable += char
+            # Validate typable query
+            if len(typable) > 0:
+                # Type
+                self.typer.type_query(typable, search_bar)
                 # Wait randomly
                 time.sleep(random.random())
                 # Search and get result container
@@ -278,10 +285,10 @@ class Browser:
         self.open_post(post_anchor=post_anchor, new_tab=True)
         # Find like button
         try:
-            like_button = WebDriverWait(self.driver, 25).until(EC.presence_of_element_located((By.CLASS_NAME, self.platform.like_button)))
+            like_button = WebDriverWait(self.driver, 25).until(EC.presence_of_element_located((By.CSS_SELECTOR, self.platform.like_button)))
         except TimeoutException as e:
             self._on_timeout(e)
-        like_button = like_button.find_element(by=By.TAG_NAME, value="div").find_element(by=By.TAG_NAME, value="div")
+        #like_button = like_button.find_element(by=By.TAG_NAME, value="div").find_element(by=By.TAG_NAME, value="div")
         # Check if button was found
         if like_button:
             # Random delay
@@ -298,12 +305,10 @@ class Browser:
         self.open_post(post_anchor=post_anchor, new_tab=True)
         # Find comment section
         try:
-            comment_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "x4h1yfo")))
+            comment_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, self.platform.comment_section)))
         except TimeoutException as e:
             self._on_timeout(e)
         comment_section = comment_section.find_element(by=By.CLASS_NAME, value=str(self.platform.comments))
-        # Get post profile from comment section
-        post_profile = comment_section.find_element(by=By.CLASS_NAME, value="xyinxu5")
         # Get buttons from post profile
         try:
             profile_buttons = WebDriverWait(comment_section, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "x1i10hfl")))
