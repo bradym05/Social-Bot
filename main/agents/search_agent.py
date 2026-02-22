@@ -3,7 +3,6 @@ from main.web import Browser
 from main.llm import BaseLLM
 from main.agents.base_agent import BaseAgent
 from typing import List
-from better_profanity import profanity
 
 # Declare search browser agent class
 class SearchAgent(BaseAgent):
@@ -47,10 +46,8 @@ class SearchAgent(BaseAgent):
             for h in headings:
                 # Check if characters are less than maximum
                 if len(h) + len(result_string) < self.max_search_chars:
-                    if self.censor and profanity.contains_profanity(h):
-                        continue
-                    else:
-                        result_string += f"{h}, "
+                    # TODO - Check for profanity here
+                    result_string += f"{h}, "
                 else:
                     break
             # Update result string for better understanding

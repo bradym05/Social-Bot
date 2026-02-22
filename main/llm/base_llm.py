@@ -2,7 +2,6 @@
 from langchain_core.prompts import PromptTemplate
 from llama_cpp import Llama
 from llama_cpp.llama_chat_format import NanoLlavaChatHandler
-from better_profanity import profanity
 from typing import Optional, List
 
 import atexit
@@ -11,7 +10,7 @@ import configparser
 
 # Load config.ini
 config = configparser.ConfigParser()
-config.read('app.ini')
+config.read('config.ini')
 
 # SETTINGS
 LLAMA_PATH = config["models"]["LLAMA_PATH"]
@@ -34,15 +33,15 @@ class BaseLLM():
         ):
         # Setup main chat model
         self.llm = Llama(
-            model_path=LLAMA_PATH, 
+            model_path=rf"{LLAMA_PATH}", 
             n_gpu_layers=-1 if cuda else 0, 
             n_batch=512, 
             n_ctx=CONTEXT_LENGTH * 2, 
             chat_format="llama-3")
         # Setup image chat model
-        self.nanollava_handler = NanoLlavaChatHandler(clip_model_path=NANOLLAVA_CLIP_PATH) # Image clip model
+        self.nanollava_handler = NanoLlavaChatHandler(clip_model_path=rf"{NANOLLAVA_CLIP_PATH}") # Image clip model
         self.nanollava = Llama(
-            model_path=NANOLLAVA_PATH, 
+            model_path=rf"{NANOLLAVA_PATH}", 
             chat_handler=self.nanollava_handler, 
             n_gpu_layers=5 if cuda else 0, 
             n_batch=128, 
@@ -85,10 +84,11 @@ class BaseLLM():
         # Reconcile messages to list
         if type(messages) == str:
             messages = [messages]
-        # Censor all messages if censoring is enabled
+        # TODO Censor all messages if censoring is enabled
         if self.censor:
             for i, m in enumerate(messages):
-                messages[i] = profanity.censor(messages[i])
+                #messages[i] = profanity.censor(messages[i])
+                continue
         # Create input
         input_messages = [{"role": "system", "content": self.chat_instructions}]
         for m in messages:
@@ -106,12 +106,11 @@ class BaseLLM():
             )
             # Retrieve output message
             output_message = output['choices'][0]['message']['content']
-            # Check output message for profanity
-            if profanity.contains_profanity(output_message):
-                print(f"CENSORED OUTPUT: {output_message}")
-                return ""
-            else:
-                return output_message
+            # TODO Check output message for profanity
+            #if profanity.contains_profanity(output_message):
+            #    print(f"CENSORED OUTPUT: {output_message}")
+            #    return ""
+            return output_message
         except ValueError:
             print("MAX TOKENS EXCEEDED")
             return ""

@@ -2,7 +2,6 @@
 from main.web import Browser
 from main.llm import BaseLLM
 from main.agents.search_agent import SearchAgent
-from better_profanity import profanity
 from typing import Dict
 
 import random
@@ -117,9 +116,8 @@ class SocialAgent(SearchAgent):
             for comment in all_comments[self.comment_start:]:
                 # Validate comment
                 if len(comment) > 0:
-                    # Check for profanity
-                    if self.censor and profanity.contains_profanity(comment):
-                        continue
+                    # TODO Check for profanity here
+
                     # Update variables
                     comment_list += f"{comment.strip()}, "
                     comment_count += 1

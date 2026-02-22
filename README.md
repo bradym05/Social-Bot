@@ -36,7 +36,7 @@ You will need to download 3 models in gguf file format.
 1. **Text Generation**
     Download any text generation model and add it to [config.ini](config.ini)
     ```ini
-    LLAMA_PATH = "Path to downloaded model",
+    LLAMA_PATH = PATH TO MODEL
     ```
     I used [Lexi Llama 3 Uncensored](https://huggingface.co/bartowski/Lexi-Llama-3-8B-Uncensored-GGUF)
 
@@ -44,7 +44,7 @@ You will need to download 3 models in gguf file format.
     Download any image to text model and add it to [config.ini](config.ini)
     Make sure you download both the clip (mmproj) and text files
     ```ini
-    NANOLLAVA_PATH = "Path to text model"
-    NANOLLAVA_CLIP_PATH = "Path to clip model"
+    NANOLLAVA_PATH = PATH TO MODEL
+    NANOLLAVA_CLIP_PATH = PATH TO CLIP MODEL (mmproj)
     ```
     I used [Nano Llava](https://huggingface.co/abetlen/nanollava-gguf)

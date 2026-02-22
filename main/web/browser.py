@@ -67,10 +67,12 @@ class Browser:
     def login(self):
         # Load site
         self.driver.get(self.platform.login_url)
+        # Getters (used multiple times)
+        getPassword = lambda x : WebDriverWait(x, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='password']")))
         # Get input fields
         try:
-            username = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username']")))
-            password = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='password']")))
+            username = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='text']")))
+            password = getPassword(self.driver)
         except TimeoutException as e:
             self._on_timeout(e)
         # Type in login credentials
@@ -78,9 +80,16 @@ class Browser:
         self.typer.type_query(self.credentials['password'], password)
         # Submit after filling out fields
         try:
-            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))).click()
+            loginButton = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div[aria-label='Log In']")))
+            loginButton.click()
         except TimeoutException as e:
             self._on_timeout(e)
+        # Wait for next page to load
+        try:
+            WebDriverWait(self.driver, 10).until(EC.staleness_of(loginButton))
+        except TimeoutException as e:
+            self._on_timeout(e)
+
     # Search the web for the given query, returns top sites
     def search_web(self, query:str) -> Dict[str, str]:
         final_results = {}
@@ -93,7 +102,7 @@ class Browser:
             self.driver.get("https://www.google.com")
             # Find search bar
             try:
-                search_bar = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.NAME, "q")))
+                search_bar = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='search']")))
             except TimeoutException as e:
                 self._on_timeout(e)
             # Wait randomly

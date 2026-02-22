@@ -2,7 +2,6 @@
 from main.web import Browser
 from main.llm import BaseLLM
 from typing import List
-from better_profanity import profanity
 
 # Declare base browser agent class
 class BaseAgent:

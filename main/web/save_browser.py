@@ -1,12 +1,13 @@
 # Dependencies
 from main.web import Browser
-from os import path
+from os import path, mkdir
 from time import time
 
 import pickle
 
 # SETTINGS
-SAVE_PATH = "datastore\\browser.pkl"
+SAVE_FOLDER = "datastore"
+SAVE_PATH = SAVE_FOLDER + "\\browser.pkl"
 LOAD_KEYS = []
 
 # Declare save browser subclass
@@ -66,7 +67,13 @@ class SaveBrowser(Browser):
         # Reference valid cookies
         save_data['cookies'] = valid
         # Write save file accordingly
-        mode = 'wb' if path.exists(SAVE_PATH) else 'xb'
+        if path.exists(SAVE_PATH):
+            mode = 'wb'
+        else:
+            mode = 'xb'
+            # Check if folder exists before creating new save file
+            if not path.exists("datastore"):
+                mkdir(SAVE_FOLDER)
         with open(SAVE_PATH, mode) as f:
             pickle.dump(save_data, f)
         # Close normally
