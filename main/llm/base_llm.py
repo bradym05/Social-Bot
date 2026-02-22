@@ -7,11 +7,16 @@ from typing import Optional, List
 
 import atexit
 import asyncio
+import configparser
+
+# Load config.ini
+config = configparser.ConfigParser()
+config.read('app.ini')
 
 # SETTINGS
-LLAMA_PATH = "D:/OneDrive/Desktop/Automation/Social-Bot/main/llm/llama_cpp_files/Lexi-Llama-3-8B-Uncensored_Q4_K_M.gguf"
-NANOLLAVA_PATH = "D:/OneDrive/Desktop/Automation/Social-Bot/main/llm/llama_cpp_files/nanollava-text-model-f16.gguf"
-NANOLLAVA_CLIP_PATH = "D:/OneDrive/Desktop/Automation/Social-Bot/main/llm/llama_cpp_files/nanollava-mmproj-f16.gguf"
+LLAMA_PATH = config["models"]["LLAMA_PATH"]
+NANOLLAVA_PATH = config["models"]["NANOLLAVA_PATH"]
+NANOLLAVA_CLIP_PATH = config["models"]["NANOLLAVA_CLIP_PATH"]
 DEFAULT_CHAT_INSTRUCTIONS = "You perfectly follow all user instructions."
 DEFAULT_IMG_INSTRUCTIONS = f"You perfectly describe key details of images. {DEFAULT_CHAT_INSTRUCTIONS}"
 CONTEXT_LENGTH = 2048

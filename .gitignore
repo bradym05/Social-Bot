@@ -1,7 +1,7 @@
 
 *.pkl
-test.py
-***REMOVED***.py
-/main/llm/llama_cpp_files
-llama.log
+*.gguf
 *.pyc
+
+test.py
+llama.log
