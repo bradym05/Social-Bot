@@ -80,7 +80,7 @@ class BaseLLM():
             print("MAX TOKENS EXCEEDED")
             return ""
     # Get processed response from Ollama
-    def get_response(self, messages:str|List[str], **kwargs) -> str:
+    def get_response(self, messages:str|List[str], instructions:str|None=None, **kwargs) -> str:
         # Reconcile messages to list
         if type(messages) == str:
             messages = [messages]
@@ -89,8 +89,11 @@ class BaseLLM():
             for i, m in enumerate(messages):
                 #messages[i] = profanity.censor(messages[i])
                 continue
+        # Check for custom instructions
+        if instructions == None:
+            instructions = self.chat_instructions
         # Create input
-        input_messages = [{"role": "system", "content": self.chat_instructions}]
+        input_messages = [{"role": "system", "content": instructions}]
         for m in messages:
             if len(m) > 0:
                 input_messages.append({
@@ -98,6 +101,8 @@ class BaseLLM():
                     "content": m
                 })
         try:
+            # Reset first
+            self.llm.reset()
             # Get model output
             output = self.llm.create_chat_completion(
                 messages = input_messages,

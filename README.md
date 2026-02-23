@@ -35,14 +35,14 @@ You will need to download 2 models in gguf file format.
 
 1. **Text Generation**:
 
-    Download [Lexi Llama 3 Uncensored](https://huggingface.co/bartowski/Lexi-Llama-3-8B-Uncensored-GGUF), or any text generation model and add it to [config.ini](config.ini)
+    Download [Lexi Llama 3 Uncensored](https://huggingface.co/bartowski/Lexi-Llama-3-8B-Uncensored-GGUF) and add the path to [config.ini](config.ini)
     ```ini
     LLAMA_PATH = PATH TO MODEL
     ```
 
 2. **Image to Text**:
 
-    Download [Nano Llava](https://huggingface.co/abetlen/nanollava-gguf), or any image to text model and add it to [config.ini](config.ini)
+    Download [Nano Llava](https://huggingface.co/abetlen/nanollava-gguf) and add both paths to [config.ini](config.ini)
     Make sure you download both the clip (mmproj) and image-text files
     ```ini
     NANOLLAVA_PATH = PATH TO MODEL

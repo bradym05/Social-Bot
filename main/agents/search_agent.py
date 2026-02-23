@@ -13,7 +13,7 @@ class SearchAgent(BaseAgent):
         browser:Browser, 
         llm:BaseLLM,
         max_search_chars:int=150,
-        censor:bool=True
+        censor:bool=True,
         ):
         # Initialize from superclass
         super(SearchAgent, self).__init__(browser=browser, llm=llm, censor=censor)
@@ -22,6 +22,7 @@ class SearchAgent(BaseAgent):
         self.llm = llm
         self.max_search_chars = max_search_chars
         self.censor = censor
+    
     # Basic web search function
     def process_web_search(self, phrases:List[str], query_chars:int=60) -> str:
         # Create query from given phrases
@@ -36,24 +37,20 @@ class SearchAgent(BaseAgent):
                     query += s + " "
             if max_reached:
                 break
-        # BMP characters only
-        query = to_bmp(query)
         # Search for given query
-        print(query)
-        result_dictionary = self.browser.search_web(query=query)
-        headings = result_dictionary.keys()
+        results = self.browser.search_web(query=query)
         result_string = ""
         # Check if anything was found
-        if len(headings) > 0:
-            # Append headings to string
-            for h in headings:
+        if len(results) > 0:
+            # Append results to string
+            for r in results:
                 # Check if characters are less than maximum
-                if len(h) + len(result_string) < self.max_search_chars:
+                if len(r) + len(result_string) < self.max_search_chars:
                     # TODO - Check for profanity here
-                    result_string += f"{h}, "
+                    result_string += f"{r}, "
                 else:
                     break
             # Update result string for better understanding
-            result_string = "Related Article Headings: " + result_string
+            result_string = "Related Article Previews: " + result_string
         # Return final result string
         return result_string

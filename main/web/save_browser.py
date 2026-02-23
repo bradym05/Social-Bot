@@ -60,6 +60,8 @@ class SaveBrowser(Browser):
     def _close(self):
         # Make sure login was successful first
         if self._logged_in:
+            # Reset tab before saving
+            self.reset_tab()
             # Initialize data
             save_data = self.custom_data
             save_data['url'] = self.driver.current_url

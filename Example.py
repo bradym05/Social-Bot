@@ -25,15 +25,6 @@ if loginSuccess:
     browser.driver.get("https://www.instagram.com/")
 
     # DEFINE LLM INSTRUCTIONS
-    CHAIN_OF_THOUGHT = """
-    For each post you see, you give the percentage of your interest in it, and you write a comment related to the post, in alignment with your instructions.\n
-    1. You find key details in the post\n
-    2. You determine your interest\n
-    3. Make a comment\n
-    4. You output your percent interest and comment in this format:\n
-        Interest: [YOUR % OF INTEREST] \n
-        Comment: [YOUR COMMENT]\n
-    """
     SAMPLES = """
     Post: Posted by @musichub, new song  released.
     Interest: 100%
@@ -65,7 +56,6 @@ if loginSuccess:
         platform_usage="promote your music",
         interests=INTERESTS,
         goals=GOALS,
-        chain_of_thought=CHAIN_OF_THOUGHT,
         grammar_instructions=GRAMMAR_INSTRUCTIONS,
         sample_responses=SAMPLES,
         slang=SLANG

@@ -9,8 +9,47 @@ import time
 import re
 
 # SETTINGS
-COMMENTS_START = 3 # Start after the third top comment (avoids pinned comments)
+COMMENTS_START = 3 # Start after the third top comment (avoids pinned comments)""
 BASE_IMAGE_INPUT = "Describe this image to me. Only describe what is in this image."
+QUERY_INPUT = """
+You will be given information from an instagram post.\n
+Generate a standalone search query to find relevant information. You output your search query in this format:\n
+    Query: [YOUR SEARCH QUERY] \n
+
+Here are some examples:
+    [INPUT]
+    POST CAPTION: The best open world games
+    IMAGE DESCRIPTION: A man standing in front of the distant moon at night
+    POST COMMENTS: Tlou and Uncharted???, Cyberpunk > Elden Ring, This gotta be bait, This list is… rly fuckin bad.
+
+    [YOUR OUTPUT]
+    Query: "What is the best open world game"
+    \n
+    [INPUT]
+    POST CAPTION: LEAVE JOE ALONE HES BEEN THROUGH ENOUGH ALREADY 😫😭😤🦧
+    IMAGE DESCRIPTION: An illustration of a plane with cartoon characters in the seats
+    POST COMMENTS: WE RIDE AT DAWN!!, Let’s go save Joe. Who’s with me button —>, He’s just a baby 😭
+
+    [YOUR OUTPUT]
+    Query: "Who is Joe from the plane?"
+    \n
+    [INPUT]
+    POST CAPTION: That’s enchanted with stick drift II 😭
+    IMAGE DESCRIPTION: A picture of a console wrapped in plastic with a controller on top
+    POST COMMENTS: Only a monster could do this, I do this everyday at work, When you find some good ass armor but it has curse of binding on it
+
+    [YOUR OUTPUT]
+    Query: "What is stick drift on consoles"
+    \n
+    [INPUT]
+    POST CAPTION: 40 video games releasing in 2026 🎮
+    IMAGE DESCRIPTION: A picture of a grid of game logos
+    POST COMMENTS: Fable oh how I've missed you 😍, And I got money for none of em, Fable?!?!?!😍, You’re forgetting subnautica 2
+
+    [YOUR OUTPUT]
+    Query: "What is the game Fable about"
+    \n
+"""
 
 # Declare social media LLM browser agent class
 class SocialAgent(SearchAgent):
@@ -86,7 +125,7 @@ class SocialAgent(SearchAgent):
             if image_url:
                 # Get image description and add to info
                 print(f"POST IMG URL: {image_url}")
-                return self.llm.describe_image(image_url=image_url, message=BASE_IMAGE_INPUT)
+                return "\nImage Description: " + self.llm.describe_image(image_url=image_url, message=BASE_IMAGE_INPUT)
         # Return blank string by default
         return ""
     # Process post description for LLM input
@@ -102,7 +141,7 @@ class SocialAgent(SearchAgent):
             else:
                 break
         # Return final description
-        return truncated_description
+        return "\n Post Caption: " + truncated_description
     # Process post comments for LLM input
     def get_processed_comments(self, post) -> str:
         # Get comments
@@ -180,28 +219,47 @@ class SocialAgent(SearchAgent):
                     self.post_history.append(url)
                     if self._save:
                         self.browser.save_data("post_history", self.post_history)
-                    # Initialize variables
-                    messages = []
                     # Get post information
+                    print("describing image")
                     image_description = self.describe_post_image(post=post)
+                    print("processing description")
                     processed_description = self.get_processed_description(post=post)
+                    print("processing comments")
                     processed_comments = self.get_processed_comments(post=post)
-                    # Search from found post info, in order of importance (highest to lowest)
-                    search_results = self.process_web_search(
-                        phrases=[
-                            processed_comments[:30], 
-                            processed_description,
-                            image_description[:30], 
-                            image_description[30:], 
-                            processed_comments[30:]
-                            ],
-                        query_chars=100
-                        )
-                    # Append info in order of importance (lowest to highest)
-                    post_information = [image_description, search_results, processed_description, processed_comments]
-                    for info in post_information:
-                        if len(info) > 0:
-                            messages.append(info)
+                    # Initialize variables
+                    messages=[
+                            processed_description[:100],
+                            image_description[:100],
+                            processed_comments[:100],
+                            ]
+                    # Initialize messages for search query
+                    query_messages = messages.copy()
+                    query_messages.append("[YOUR OUTPUT]:\nQuery: [YOUR SEARCH QUERY]")
+                    # Generate query from post information
+                    print(messages)
+                    print("getting search query")
+                    search_query = self.llm.get_response(
+                        instructions=QUERY_INPUT,
+                        messages=query_messages
+                    )
+                    print("Search Query:")
+                    print(search_query)
+                    # Check if search query is formatted correctly
+                    if search_query.lower().find("query:") > -1:
+                        # Extract query
+                        search_query = search_query.lower().split("query:")[1]
+                        print(f"Generated Query: {search_query}")
+                        # Search from found post info, in order of importance (highest to lowest)
+                        search_results = self.process_web_search(
+                            phrases=[search_query],
+                            query_chars=100
+                            )
+                    else:
+                        search_results = ""
+                    # Append search results
+                    print(search_results)
+                    if len(search_results) > 0:
+                        messages.append(f"SEARCH RESULTS:\n {search_results}")
                     # Finally, add expected output format
                     messages.append("[YOUR OUTPUT]:\nInterest: [YOUR % OF INTEREST]\nComment: [YOUR COMMENT]")
                     # Get LLM output
@@ -235,12 +293,6 @@ class SocialAgent(SearchAgent):
                             # Follow
                             print("FOLLOWING ACCOUNT")
                             self.browser.follow_profile(post_anchor=post)
-                            # Determine whether or not to follow other accounts on random chance
-                            if random.random() > 0.5:
-                                # Open profile
-                                self.browser.open_profile(post_anchor=post)
-                                # Follow other accounts
-                                self.browser.follow_profile_following(count=random.randrange(1, self.max_follow_accounts))
                     # Wait on post
                     time.sleep((1 + random.random()) * (2 + random.random()))
                     # Close post
