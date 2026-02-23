@@ -206,7 +206,7 @@ class Browser:
                 print("results: ", len(all_results))
                 for result_article in all_results:
                     if result_article.text and len(result_article.text) > 0:
-                        final_results.append(result_article.text.splitlines()[-1])
+                        final_results.append(result_article.text)
             # Close search tab
             self.reset_tab()
         # Return final results
@@ -349,7 +349,7 @@ class Browser:
     def like_post(self, post_anchor:WebElement):
         # Get post info
         post_info: PostInfo = PostInfo(self, post_anchor)
-        if post_info.like_button:
+        if getattr(post_info, "like_button", None):
             # Random delay
             time.sleep(random.random()/5)
             # Hover on button
@@ -359,7 +359,7 @@ class Browser:
     def follow_profile(self, post_anchor:WebElement):
         # Get post info
         post_info: PostInfo = PostInfo(self, post_anchor)
-        if post_info.follow_button:
+        if getattr(post_info, "follow_button", None):
             # Random delay
             time.sleep(random.random()/20)
             # Press follow button
@@ -369,7 +369,7 @@ class Browser:
     def open_profile(self, post_anchor:WebElement):
         # Open profile from post info
         post_info: PostInfo = PostInfo(self, post_anchor)
-        if post_info.profile:
+        if getattr(post_info, "profile", None):
             print("opening: ", post_info.profile)
             self.driver.get(post_info.profile)
 
@@ -386,7 +386,7 @@ class Browser:
         # Get post info
         post_info = PostInfo(self, post_anchor)
         # Make sure comment input loaded
-        if post_info.comment_input:
+        if getattr(post_info, "comment_input", None):
             post_info.comment_input.click()
             text_field = post_info.comment_input.find_element(by=By.TAG_NAME, value="textarea")
             # Validate comment input

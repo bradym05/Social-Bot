@@ -50,7 +50,5 @@ class SearchAgent(BaseAgent):
                     result_string += f"{r}, "
                 else:
                     break
-            # Update result string for better understanding
-            result_string = "Related Article Previews: " + result_string
         # Return final result string
         return result_string

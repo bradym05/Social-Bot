@@ -66,11 +66,12 @@ class SocialAgent(SearchAgent):
         max_total_comment_chars:int=200,
         max_description_chars:int=100,
         min_like_interest:int=50,
-        min_follow_interest:int=90,
+        min_follow_interest:int=80,
         max_follow_accounts:int=4,
         dislike_comment_interest:int=20,
         like_comment_interest:int=75,
         break_chance:int=10,
+        comment_chance:float=0.8,
         min_break_length:int=300,
         max_break_length:int=3600):
         # Initialize from superclass
@@ -89,6 +90,7 @@ class SocialAgent(SearchAgent):
         self.break_chance = max(min(break_chance, 100), 0)
         self.min_break_length = min_break_length
         self.max_break_length = max_break_length
+        self.comment_chance = comment_chance
         self.post_history = []
         self._save = False
         # Check if browser is a save browser
@@ -220,35 +222,28 @@ class SocialAgent(SearchAgent):
                     if self._save:
                         self.browser.save_data("post_history", self.post_history)
                     # Get post information
-                    print("describing image")
                     image_description = self.describe_post_image(post=post)
-                    print("processing description")
                     processed_description = self.get_processed_description(post=post)
-                    print("processing comments")
                     processed_comments = self.get_processed_comments(post=post)
                     # Initialize variables
                     messages=[
                             processed_description[:100],
                             image_description[:100],
-                            processed_comments[:100],
+                            processed_comments,
                             ]
                     # Initialize messages for search query
                     query_messages = messages.copy()
                     query_messages.append("[YOUR OUTPUT]:\nQuery: [YOUR SEARCH QUERY]")
                     # Generate query from post information
-                    print(messages)
-                    print("getting search query")
                     search_query = self.llm.get_response(
                         instructions=QUERY_INPUT,
                         messages=query_messages
                     )
-                    print("Search Query:")
                     print(search_query)
                     # Check if search query is formatted correctly
                     if search_query.lower().find("query:") > -1:
                         # Extract query
                         search_query = search_query.lower().split("query:")[1]
-                        print(f"Generated Query: {search_query}")
                         # Search from found post info, in order of importance (highest to lowest)
                         search_results = self.process_web_search(
                             phrases=[search_query],
@@ -257,16 +252,13 @@ class SocialAgent(SearchAgent):
                     else:
                         search_results = ""
                     # Append search results
-                    print(search_results)
                     if len(search_results) > 0:
-                        messages.append(f"SEARCH RESULTS:\n {search_results}")
+                        messages.append(f"Search Results:\n {search_results}")
                     # Finally, add expected output format
                     messages.append("[YOUR OUTPUT]:\nInterest: [YOUR % OF INTEREST]\nComment: [YOUR COMMENT]")
                     # Get LLM output
                     output = self.llm.get_response(messages=messages)
                     print(f"-------------------- LLM INPUT --------------------\n{messages}\n-------------------- LLM OUTPUT --------------------\n{output}")
-                    # Wait before proceeding
-                    time.sleep((1 + random.random()) * 2)
                     # Extract output values and validate
                     output_values = self.extract_values(output=output)
                     if "interest" in output_values and "comment" in output_values:
@@ -284,7 +276,7 @@ class SocialAgent(SearchAgent):
                             time.sleep(1 * random.random())
                         # Comment based on random chance, and if below dislike interest, or above like interest
                         comment_chance = random.random()
-                        if comment_chance > 0.5 and ((interest > 0 and interest < self.dislike_comment_interest) or interest > self.like_comment_interest):
+                        if comment_chance > 1 - self.comment_chance and interest < self.dislike_comment_interest or interest > self.like_comment_interest:
                             # Make comment
                             print("MAKING COMMENT")
                             self.browser.comment_post(post_anchor=post, comment=comment)
