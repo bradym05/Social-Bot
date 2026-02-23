@@ -31,20 +31,20 @@ To get started with this project, you need to install the required packages. Fol
 
 ## Model Setup
 
-You will need to download 3 models in gguf file format.
+You will need to download 2 models in gguf file format.
 
-1. **Text Generation**
-    Download any text generation model and add it to [config.ini](config.ini)
+1. **Text Generation**:
+
+    Download [Lexi Llama 3 Uncensored](https://huggingface.co/bartowski/Lexi-Llama-3-8B-Uncensored-GGUF), or any text generation model and add it to [config.ini](config.ini)
     ```ini
     LLAMA_PATH = PATH TO MODEL
     ```
-    I used [Lexi Llama 3 Uncensored](https://huggingface.co/bartowski/Lexi-Llama-3-8B-Uncensored-GGUF)
 
-2. **Image to Text**
-    Download any image to text model and add it to [config.ini](config.ini)
-    Make sure you download both the clip (mmproj) and text files
+2. **Image to Text**:
+
+    Download [Nano Llava](https://huggingface.co/abetlen/nanollava-gguf), or any image to text model and add it to [config.ini](config.ini)
+    Make sure you download both the clip (mmproj) and image-text files
     ```ini
     NANOLLAVA_PATH = PATH TO MODEL
     NANOLLAVA_CLIP_PATH = PATH TO CLIP MODEL (mmproj)
     ```
-    I used [Nano Llava](https://huggingface.co/abetlen/nanollava-gguf)

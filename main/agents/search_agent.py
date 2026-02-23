@@ -3,6 +3,7 @@ from main.web import Browser
 from main.llm import BaseLLM
 from main.agents.base_agent import BaseAgent
 from typing import List
+from main.web.browser import to_bmp
 
 # Declare search browser agent class
 class SearchAgent(BaseAgent):
@@ -35,6 +36,8 @@ class SearchAgent(BaseAgent):
                     query += s + " "
             if max_reached:
                 break
+        # BMP characters only
+        query = to_bmp(query)
         # Search for given query
         print(query)
         result_dictionary = self.browser.search_web(query=query)

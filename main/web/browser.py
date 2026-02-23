@@ -16,6 +16,64 @@ import time
 import random
 import atexit
 
+# Types
+class PostInfo:
+
+    # props
+    comments: List[str]
+    like_button: WebElement | None
+    follow_button: WebElement | None
+    comment_input: WebElement | None
+    author: str | None
+    profile: str | None
+
+    # Get info using given browser
+    def __init__(self, browser, post_anchor):
+        # Initialize post info
+        self.comments = []
+        # Open post
+        browser.open_post(post_anchor=post_anchor, new_tab=True)
+        # Yield until comment form loads
+        try:
+            self.comment_input = WebDriverWait(browser.driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "form")))
+        except TimeoutError as e:
+            browser._on_timeout(e)
+        # Find all reply buttons
+        all_buttons: List[WebElement] = browser.driver.find_elements(By.CSS_SELECTOR, "div[role='button']")
+        for button in all_buttons:
+            try:
+                match button.accessible_name:
+                    case "Reply": # Reply button only exists in comments
+                        comment_div: WebElement = button.parent
+                        if type(comment_div) == WebElement:
+                            self.comments.append(comment_div.parent.text)
+                    case "Comment": # Comment button only exists in post buttons div
+                        # Post buttons *should* be located in the second parent element
+                        post_button_div = button.find_element(By.XPATH, "..").find_element(By.XPATH, "..")
+                        # Iterate over all post buttons
+                        for post_button in post_button_div.find_elements(By.CSS_SELECTOR, "div[role='button']"):
+                            if post_button.accessible_name == "Like":
+                                self.like_button = post_button
+                                break
+                    case "Follow":
+                        self.follow_button = button
+                    case _:
+                        # Get author name from profile picture
+                        if button.accessible_name.lower().find("profile picture"):
+                            self.author = button.accessible_name.lower().split("'")[0]
+                            # Link to profile
+                            self.profile = f"https://www.instagram.com/{self.author}/"
+            except StaleElementReferenceException as e:
+                continue
+
+# Generate typable search query (only characters in the BMP)
+def to_bmp(string) -> str:
+    typable = ""
+    for char in string:
+        if (char.isalnum() and char.isascii) or char == " ":
+            typable += char
+    return typable
+
 # Declare browser class
 class Browser:
     # Initialize object
@@ -98,6 +156,8 @@ class Browser:
             print("Login Successful")
         # Check if continue button was found
         return not continueButton
+    
+
 
     # Search the web for the given query, returns top sites
     def search_web(self, query:str) -> Dict[str, str]:
@@ -124,9 +184,7 @@ class Browser:
             if len(lines) == 0:
                 lines = [query]
             for l in lines:
-                for char in l.strip():
-                    if (char.isalnum() and char.isascii) or char == " ":
-                        typable += char
+                typable += to_bmp(l)
             # Validate typable query
             if len(typable) > 0:
                 # Type
@@ -161,6 +219,7 @@ class Browser:
             self.driver.switch_to.window(original_tab)
         # Return final results
         return final_results
+    
     # Scroll through feed, return array of posts
     def feed_step(self, post_count:int=6) -> List[WebElement]:
         # Check current page
@@ -197,6 +256,7 @@ class Browser:
             selected_posts = post_anchors
         # Return selected posts
         return selected_posts
+    
     # Open the given post
     def open_post(self, post_anchor:WebElement, new_tab:bool=True):
         # Get currently opened post
@@ -226,6 +286,7 @@ class Browser:
                 post_anchor.click()
             # Update post url
             self._post_url = str(post_url)
+
     # Close current post
     def close_post(self):
         # Check if post is open
@@ -239,6 +300,7 @@ class Browser:
         self._current_post = None
         self._new_tab = None
         self._post_url = None
+
     # Get post image
     def get_post_image(self, post_anchor:WebElement) -> WebElement | None:
         # Get _aagv class
@@ -252,6 +314,7 @@ class Browser:
             image_info = post_info.find_element(by=By.TAG_NAME, value="img")
             # Return image info
             return image_info
+        
     # Describe the given post
     def describe_post(self, post_anchor:WebElement) -> str | None:
         # Get image info
@@ -260,6 +323,7 @@ class Browser:
         if image_info:
             # Get and return image description
             return image_info.get_attribute("alt")
+        
     # Scroll to the end of a slides post
     def scroll_post(self, post_anchor:WebElement):
         # Open post
@@ -279,77 +343,35 @@ class Browser:
                     scroll_button.click()
                 except StaleElementReferenceException:
                     break
+
     # Like the given post
     def like_post(self, post_anchor:WebElement):
-        # Open post
-        self.open_post(post_anchor=post_anchor, new_tab=True)
-        # Find like button
-        try:
-            like_button = WebDriverWait(self.driver, 25).until(EC.presence_of_element_located((By.CSS_SELECTOR, self.platform.like_button)))
-        except TimeoutException as e:
-            self._on_timeout(e)
-        #like_button = like_button.find_element(by=By.TAG_NAME, value="div").find_element(by=By.TAG_NAME, value="div")
-        # Check if button was found
-        if like_button:
+        # Get post info
+        post_info: PostInfo = PostInfo(self, post_anchor)
+        if post_info.like_button:
             # Random delay
             time.sleep(random.random()/5)
             # Hover on button
-            like_button.click()
-            # Random delay
-            time.sleep(random.random()/20)
-            # Press button
-            like_button.click()
-    # Get profile buttons of given post
-    def get_profile_buttons(self, post_anchor:WebElement) -> List[WebElement]:
-        # Open post
-        self.open_post(post_anchor=post_anchor, new_tab=True)
-        # Find comment section
-        try:
-            comment_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, self.platform.comment_section)))
-        except TimeoutException as e:
-            self._on_timeout(e)
-        comment_section = comment_section.find_element(by=By.CLASS_NAME, value=str(self.platform.comments))
-        # Get buttons from post profile
-        try:
-            profile_buttons = WebDriverWait(comment_section, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "x1i10hfl")))
-        except TimeoutException as e:
-            self._on_timeout(e)
-        # Return results
-        return profile_buttons
+            post_info.like_button.click()
+
     # Follow the account who posted the given post
     def follow_profile(self, post_anchor:WebElement):
-        # Get profile buttons
-        profile_buttons = self.get_profile_buttons(post_anchor=post_anchor)
-        # Find follow button
-        follow_button = False
-        for button in profile_buttons:
-            if button.get_attribute("innerText") == "Follow":
-                follow_button = button
-                break
-        # Check if follow button was found
-        if follow_button:
+        # Get post info
+        post_info: PostInfo = PostInfo(self, post_anchor)
+        if post_info.follow_button:
             # Random delay
             time.sleep(random.random()/20)
             # Press follow button
-            follow_button.click()
+            post_info.follow_button.click()
+
     # Open the profile of the account who posted the given post
     def open_profile(self, post_anchor:WebElement):
-        # Get profile buttons
-        profile_buttons = self.get_profile_buttons(post_anchor=post_anchor)
-        # Find profile button
-        page_button = False
-        for button in profile_buttons:
-            if button.get_attribute("innerText") != "Follow" and button.get_attribute("innerText") != "Following":
-                page_button = button
-                break
-        # Check if profile button was found
-        if page_button:
-            # Random delay
-            time.sleep(random.random()/20)
-            # Press page button
-            page_button.click()
-            # Wait for page to load
-            time.sleep(5)
+        # Open profile from post info
+        post_info: PostInfo = PostInfo(self, post_anchor)
+        if post_info.profile:
+            print("opening: ", post_info.profile)
+            self.driver.get(post_info.profile)
+
     # Follow people who are followed by the currently opened profile
     def follow_profile_following(self, count:int=1):
         # Get account buttons
@@ -405,56 +427,24 @@ class Browser:
                     time.sleep(random.random()/20)
                     # Click follow button
                     button.click()
+
     # Get all comments from the comment section of the given post
     def get_comments(self, post_anchor:WebElement) -> List[str]:
-        # Open post
-        self.open_post(post_anchor=post_anchor, new_tab=True)
-        # Find comment section
-        try:
-            comment_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "x4h1yfo")))
-        except TimeoutException as e:
-            self._on_timeout(e)
-        comment_section = comment_section.find_element(by=By.CLASS_NAME, value=str(self.platform.comments))
-        combined_comments = comment_section.get_attribute("innerText")
-        # Split comments by the Reply button
-        combined_comments = combined_comments.split(sep="Reply")
-        string_comments = []
-        # Iterate over all comments
-        for comment in combined_comments[1:]:
-            # Split by lines
-            main = comment.splitlines()
-            # Iterate over each line
-            for i, section in enumerate(main[:-1]):
-                # Clean up and validate section
-                section = section.strip()
-                if len(section) > 1:
-                    # Get important information
-                    time_unit = section[-1]
-                    first_digit = section[0]
-                    # Check for comment date indicator
-                    if first_digit.isdigit() and (time_unit == 'd' or time_unit == 'h' or time_unit == 'm' or time_unit == 'y'):
-                        # Date indicator is right before comment, therefore the next line must be a comment
-                        string_comments.append(main[i + 1])
-                        break
-        # Return final list of comments
-        return string_comments
+        return PostInfo(self, post_anchor).comments
+
     # Comment on the given post
     def comment_post(self, post_anchor:WebElement, comment:str):
-        # Open post
-        self.open_post(post_anchor=post_anchor, new_tab=True)
-        # Get comment section input field
-        try:
-            comment_input = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "form")))
-        except TimeoutException as e:
-            self._on_timeout(e)
-        #comment_input = self.driver.find_element(by=By.TAG_NAME, value="form")
-        comment_input.click()
-        comment_input = comment_input and comment_input.find_element(by=By.TAG_NAME, value="textarea")
-        # Validate comment input
-        if comment_input:
-            # Type in comment
-            self.typer.type_query(comment, comment_input)
-            # Submit after typing comment
-            self.on_type(comment, Keys.ENTER, comment_input)
-            # Wait after commenting
-            time.sleep(4 + random.random())
+        # Get post info
+        post_info = PostInfo(self, post_anchor)
+        # Make sure comment input loaded
+        if post_info.comment_input:
+            post_info.comment_input.click()
+            text_field = post_info.comment_input.find_element(by=By.TAG_NAME, value="textarea")
+            # Validate comment input
+            if text_field:
+                # Type in comment
+                self.typer.type_query(comment, text_field)
+                # Submit after typing comment
+                self.on_type(comment, Keys.ENTER, text_field)
+                # Wait after commenting
+                time.sleep(4 + random.random())
