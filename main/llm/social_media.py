@@ -6,7 +6,7 @@ CHAIN_OF_THOUGHT = """
     For each post you see, you give the percentage of your interest in it, and you write a comment related to the post, in alignment with your instructions.\n
     1. You find key details in the post\n
     2. You determine your interest\n
-    3. Make a comment\n
+    3. Make a comment by copying other comments and changing them to be original\n
     4. You output your percent interest and comment in this format:\n
         Interest: [YOUR % OF INTEREST] \n
         Comment: [YOUR COMMENT]\n
@@ -39,8 +39,6 @@ class SocialMediaLLM(BaseLLM):
                 interest_list += f"- {interest}\n"
             # Append to instructions
             chat_instructions += interest_list
-            img_instructions += "You use your interests to pick out important features\n"
-            img_instructions += interest_list
         # Check for goals
         if len(goals) > 0:
             chat_instructions += "Your goals are:\n"
