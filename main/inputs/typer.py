@@ -23,8 +23,8 @@ class Typer:
     def __init__(
         self, 
         type_callback:callable, 
-        speed:float=7, 
-        typo_chance:float=0.15,
+        speed:float=10, 
+        typo_chance:float=0.05,
         typo_range:int=2
         ):
         # Initialize variables
@@ -68,7 +68,7 @@ class Typer:
         next_char = 0
         typos = 0
         # Loop until completed
-        while True:
+        while next_char < final_char:
             # Random chance of typo
             if query[next_char] != " " and next_char > 0 and random.random() < self.typo_chance and typos <= 2:
                 # Get current keyboard position
@@ -102,6 +102,3 @@ class Typer:
             time.sleep(random.random()/self.speed)
             # Pass updated string to callback
             self.type_callback(typed, char, *args)
-            # Check if completed
-            if next_char >= final_char:
-                break

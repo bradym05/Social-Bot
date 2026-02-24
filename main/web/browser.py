@@ -17,7 +17,7 @@ import time
 import random
 import atexit
 
-# Types
+# Gets post info from the given browser and post
 class PostInfo:
 
     # props
@@ -38,8 +38,8 @@ class PostInfo:
         try:
             self.comment_input = WebDriverWait(browser.driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "form")))
         except TimeoutError as e:
-            browser._on_timeout(e)
-        # Find all reply buttons
+            self.comment_input = None
+        # Find all buttons
         all_buttons: List[WebElement] = browser.driver.find_elements(By.CSS_SELECTOR, "div[role='button']")
         for button in all_buttons:
             try:
@@ -59,26 +59,18 @@ class PostInfo:
                         for post_button in post_button_div.find_elements(By.CSS_SELECTOR, "div[role='button']"):
                             if post_button.accessible_name == "Like":
                                 self.like_button = post_button
+                            elif post_button.accessible_name.lower().find("profile picture"):
+                                # Get author name from profile picture
+                                self.author = button.accessible_name.lower().split("'")[0]
+                                self.profile = f"https://www.instagram.com/{self.author}/"
+                            else:
+                                continue
+                            if getattr(self, "like_button") and getattr(self, "profile"):
                                 break
                     case "Follow":
                         self.follow_button = button
-                    case _:
-                        # Get author name from profile picture
-                        if button.accessible_name.lower().find("profile picture"):
-                            self.author = button.accessible_name.lower().split("'")[0]
-                            # Link to profile
-                            self.profile = f"https://www.instagram.com/{self.author}/"
             except StaleElementReferenceException as e:
                 continue
-
-# Generate typable search query (only characters in the BMP)
-def to_bmp(string) -> str:
-    typable = ""
-    for char in string:
-        #if (char.isalnum() and char.isascii) or char == " ":
-        if ord(char) <= 0xFFFF:
-            typable += char
-    return typable
 
 # Declare browser class
 class Browser:
@@ -171,8 +163,8 @@ class Browser:
         # Validate query
         if len(query) > 0:
             # Get original tab
-            self.original_tab = self.driver.current_window_handle
-            # Open new tab and go to google
+            original_tab = self.driver.current_window_handle
+            # Open new tab and go to duckduckgo
             self.driver.switch_to.new_window('tab')
             self.driver.get("https://duckduckgo.com")
             # Find search bar
@@ -186,18 +178,10 @@ class Browser:
             time.sleep(random.random())
             search_bar.click()
             time.sleep(random.random())
-            # Generate typable search query (only characters in the BMP)
-            lines = query.splitlines()
-            typable = ""
-            if len(lines) == 0:
-                lines = [query]
-            for l in lines:
-                if len(l) > 0:
-                    typable += to_bmp(l)
-            # Validate typable query
-            if len(typable) > 0:
+            # Validate query
+            if len(query) > 0:
                 # Type
-                self.typer.type_query(typable, search_bar)
+                self.typer.type_query(query, search_bar)
                 # Wait randomly
                 time.sleep(random.random())
                 # Search and get result container
@@ -209,23 +193,18 @@ class Browser:
                 # Get results from container
                 all_results = results_container.find_elements(By.TAG_NAME, "article")
                 for result_article in all_results:
-                    if result_article.text and len(result_article.text) > 0:
+                    # Ads start with ra, results start with r[num]
+                    is_ad = result_article.id[:2] == "ra"
+                    # Skip ads and articles with no text
+                    if not is_ad and result_article.text and len(result_article.text) > 0:
                         article_summary = result_article.text.splitlines()[-1]
                         if len(article_summary) >= 30:
                             final_results.append(result_article.text.splitlines()[-1])
             # Close search tab
-            self.reset_tab()
+            self.driver.close()
+            self.driver.switch_to.window(original_tab)
         # Return final results
         return final_results
-    
-    # Go back to instagram
-    def reset_tab(self):
-        if getattr(self, "original_tab", None):
-            # Go back to original tab
-            self.driver.close()
-            self.driver.switch_to.window(self.original_tab)
-            # Reset
-            self.original_tab = None
 
     # Scroll through feed, return array of posts
     def feed_step(self, post_count:int=6) -> List[WebElement]:
@@ -322,7 +301,7 @@ class Browser:
             # Return image info
             return image_info
         
-    # Describe the given post
+    # Returns the alt text of the post thumbnail
     def describe_post(self, post_anchor:WebElement) -> str | None:
         # Get image info
         image_info = self.get_post_image(post_anchor=post_anchor)
@@ -358,7 +337,8 @@ class Browser:
         if getattr(post_info, "like_button", None):
             # Random delay
             time.sleep(random.random()/5)
-            # Hover on button
+            # Hover on button and click
+            self.to_element(post_info.like_button)
             post_info.like_button.click()
 
     # Follow the account who posted the given post
@@ -393,13 +373,16 @@ class Browser:
         post_info = PostInfo(self, post_anchor)
         # Make sure comment input loaded
         if getattr(post_info, "comment_input", None):
+            # Move mouse to comment input and click 
+            self.to_element(post_info.comment_input)
             post_info.comment_input.click()
+            # Get text field
             text_field = post_info.comment_input.find_element(by=By.TAG_NAME, value="textarea")
-            # Validate comment input
+            # Validate text field
             if text_field:
                 # Type in comment
                 self.typer.type_query(comment, text_field)
                 # Submit after typing comment
                 self.on_type(comment, Keys.ENTER, text_field)
                 # Wait after commenting
-                time.sleep(4 + random.random())
+                time.sleep(2 + random.random())

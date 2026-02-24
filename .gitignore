@@ -4,5 +4,6 @@
 *.pyc
 
 test.py
+test2.py
 llama.log
 datastore

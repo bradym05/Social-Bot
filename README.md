@@ -3,7 +3,6 @@
 Automatically scroll through instagram, like posts, and follow people using AI. The bot's "personality" is determined by the following inputs:
 - Interests
 - Goals
-- Chain of Thought
 - Grammar Instructions
 - Sample Responses
 - Slang
