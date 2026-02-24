@@ -179,7 +179,7 @@ class Browser:
             try:
                 search_bar = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.ID, "searchbox_input")))
             except TimeoutException as e:
-                self._on_timeout(e)
+                return []
             # Hover search bar
             self.to_element(search_bar)
             # Click after hovering
@@ -205,7 +205,7 @@ class Browser:
                 try:
                     results_container = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "ol[class='react-results--main']")))
                 except TimeoutException as e:
-                    self._on_timeout(e)
+                    return []
                 # Get results from container
                 all_results = results_container.find_elements(By.TAG_NAME, "article")
                 for result_article in all_results:
@@ -235,7 +235,7 @@ class Browser:
             try:
                 WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.NAME, self.platform.feed_button))).click()
             except TimeoutException as e:
-                self._on_timeout(e)
+                return []
         elif str(self.driver.current_url) != self.platform.feed_url:
             # Go straight to feed
             self.driver.get(self.platform.feed_url)
@@ -314,7 +314,7 @@ class Browser:
         try:
             post_info = WebDriverWait(post_anchor, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, "_aagv")))
         except TimeoutException as e:
-            self._on_timeout(e)
+            return None
         # Validate
         if post_info:
             # Get image info from _aagv class
