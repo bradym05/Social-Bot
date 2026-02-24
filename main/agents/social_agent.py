@@ -133,8 +133,11 @@ class SocialAgent(SearchAgent):
     def get_processed_caption(self, post) -> str:
         # Get post alt - on the explore page the alt text is the post's caption
         post_alt = self.browser.get_alt(post_anchor=post).strip()
-        # Return final description
-        return "\n Post Caption: " + truncate(post_alt, self.max_caption_chars)
+        if post_alt:
+            # Return final description
+            return "\n Post Caption: " + truncate(post_alt, self.max_caption_chars)
+        else:
+            return "No Caption"
     # Process post comments for LLM input
     def get_processed_comments(self, post) -> str:
         # Get comments

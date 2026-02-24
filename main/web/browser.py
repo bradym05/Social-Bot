@@ -121,7 +121,7 @@ class Browser:
 
     # Humanize movement to element
     def to_element(self, element):
-        ActionChains(self.driver, 250 + random.random() * 500).move_to_element_with_offset(element, random.randint(-10, 10), random.randint(-10, 10))
+        ActionChains(self.driver, 250 + random.random() * 500).move_to_element_with_offset(element, random.randint(-2, 2), random.randint(-1, 1))
     # Get requested site and login
     def login(self):
         # Load site

@@ -91,8 +91,8 @@ if loginSuccess:
     print("Agent created")
 
     # Run 20 processes
-    # 1 process = view n_posts
-    while True == True:
+    # 1 process = interact with [n_posts] number of posts
+    for _ in range(20):
         print("NEW PROCESS")
         agent.process()
         time.sleep(2)
