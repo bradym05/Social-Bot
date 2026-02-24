@@ -10,9 +10,7 @@ class BaseAgent:
         self, 
         browser:Browser, 
         llm:BaseLLM,
-        censor:bool=True
         ):
         # Initialize variables
         self.browser = browser
         self.llm = llm
-        self.censor = censor

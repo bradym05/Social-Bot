@@ -3,6 +3,7 @@ from main.web import Browser
 from main.llm import BaseLLM
 from main.agents.search_agent import SearchAgent
 from typing import Dict
+from main.utils.strings import truncate
 
 import random
 import time
@@ -59,12 +60,12 @@ class SocialAgent(SearchAgent):
         browser:Browser, 
         llm:BaseLLM, 
         max_search_chars:int=150,
-        censor:bool=True,
         n_posts:int=5,
         min_comments:int=1,
         max_comments:int=10,
         max_total_comment_chars:int=300,
-        max_description_chars:int=150,
+        max_caption_chars:int=150,
+        max_description_chars:int=100,
         min_like_interest:int=50,
         min_follow_interest:int=80,
         max_follow_accounts:int=4,
@@ -74,12 +75,13 @@ class SocialAgent(SearchAgent):
         min_break_length:int=300,
         max_break_length:int=3600):
         # Initialize from superclass
-        super(SocialAgent, self).__init__(browser=browser, llm=llm, max_search_chars=max_search_chars, censor=censor)
+        super(SocialAgent, self).__init__(browser=browser, llm=llm, max_search_chars=max_search_chars)
         # Initialize variables
         self.n_posts = n_posts
         self.comment_start = (COMMENTS_START + (min_comments - 1))
         self.max_comments = max_comments
         self.max_total_comment_chars = max_total_comment_chars
+        self.max_caption_chars = max_caption_chars
         self.max_description_chars = max_description_chars
         self.min_like_interest = min_like_interest
         self.min_follow_interest = min_follow_interest
@@ -123,25 +125,16 @@ class SocialAgent(SearchAgent):
             image_url = post_image.get_attribute("src")
             # Validate url
             if image_url:
-                # Get image description and add to info
-                print(f"POST IMG URL: {image_url}")
-                return "\nImage Description: " + self.llm.describe_image(image_url=image_url, message=BASE_IMAGE_INPUT)
+                # Get image description
+                return "\nImage Description: " + truncate(self.llm.describe_image(image_url=image_url, message=BASE_IMAGE_INPUT), self.max_description_chars)
         # Return blank string by default
         return ""
-    # Process post description for LLM input
-    def get_processed_description(self, post) -> str:
-        # Get post description
-        post_description = self.browser.describe_post(post_anchor=post).strip()
-        truncated_description = ""
-        # Iterate over the description in sections
-        for section in post_description.split():
-            # Check if within max characters
-            if len(section) + len(truncated_description) <= self.max_description_chars:
-                truncated_description += " " + section
-            else:
-                break
+    # Process post caption for LLM input
+    def get_processed_caption(self, post) -> str:
+        # Get post alt - on the explore page the alt text is the post's caption
+        post_alt = self.browser.get_alt(post_anchor=post).strip()
         # Return final description
-        return "\n Post Caption: " + truncated_description
+        return "\n Post Caption: " + truncate(post_alt, self.max_caption_chars)
     # Process post comments for LLM input
     def get_processed_comments(self, post) -> str:
         # Get comments
@@ -155,10 +148,8 @@ class SocialAgent(SearchAgent):
             for comment in all_comments[self.comment_start:]:
                 # Validate comment
                 if len(comment) > 0:
-                    # TODO Check for profanity here
-
                     # Update variables
-                    comment_list += f"{comment.strip()}, "
+                    comment_list += f'"{comment.strip()}", ' 
                     comment_count += 1
                     # Check if max characters or comment count has been exceeded
                     if len(comment_list) >= self.max_total_comment_chars or comment_count >= self.max_comments:
@@ -221,7 +212,7 @@ class SocialAgent(SearchAgent):
                         self.browser.save_data("post_history", self.post_history)
                     # Get post information
                     image_description = self.describe_post_image(post=post)
-                    processed_description = self.get_processed_description(post=post)
+                    processed_description = self.get_processed_caption(post=post)
                     processed_comments = self.get_processed_comments(post=post)
                     # Initialize variables
                     messages=[
@@ -251,7 +242,7 @@ class SocialAgent(SearchAgent):
                         search_results = ""
                     # Append search results
                     if len(search_results) > 0:
-                        messages.append(f"Search Results:\n {search_results}")
+                        messages.append(f"\nSearch Results: {search_results}")
                     # Finally, add expected output format
                     messages.append("[YOUR OUTPUT]:\nInterest: [YOUR % OF INTEREST]\nComment: [YOUR COMMENT]")
                     # Get LLM output

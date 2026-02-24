@@ -302,7 +302,7 @@ class Browser:
             return image_info
         
     # Returns the alt text of the post thumbnail
-    def describe_post(self, post_anchor:WebElement) -> str | None:
+    def get_alt(self, post_anchor:WebElement) -> str | None:
         # Get image info
         image_info = self.get_post_image(post_anchor=post_anchor)
         # Validate image info

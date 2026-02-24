@@ -13,15 +13,13 @@ class SearchAgent(BaseAgent):
         browser:Browser, 
         llm:BaseLLM,
         max_search_chars:int=400,
-        censor:bool=True,
         ):
         # Initialize from superclass
-        super(SearchAgent, self).__init__(browser=browser, llm=llm, censor=censor)
+        super(SearchAgent, self).__init__(browser=browser, llm=llm)
         # Initialize variables
         self.browser = browser
         self.llm = llm
         self.max_search_chars = max_search_chars
-        self.censor = censor
     
     # Basic web search function
     def process_web_search(self, phrases:List[str], query_chars:int=60) -> str:
@@ -42,8 +40,7 @@ class SearchAgent(BaseAgent):
         result_string = ""
         # Append results to string
         for r in results:
-            # TODO - Check for profanity here
-            result_string += f"{r}, "
+            result_string += f'"{r}", '
             # Check if max has been exceeded
             if len(result_string) > self.max_search_chars:
                 break
