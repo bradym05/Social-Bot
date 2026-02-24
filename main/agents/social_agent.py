@@ -269,11 +269,11 @@ class SocialAgent(SearchAgent):
                             # Make comment
                             print("MAKING COMMENT")
                             self.browser.comment_post(post_anchor=post, comment=comment)
-                        # Follow account if interest is atleast 90%
+                        # Follow account if interest is atleast min
                         if interest >= self.min_follow_interest:
                             # Follow
-                            print("FOLLOWING ACCOUNT")
-                            self.browser.follow_profile(post_anchor=post)
+                            print("FOLLOWING ACCOUNT FOLLOWERS")
+                            self.browser.follow_profile_followers(post_anchor=post)
                     # Wait on post
                     time.sleep((1 + random.random()) * (2 + random.random()))
                     # Close post
