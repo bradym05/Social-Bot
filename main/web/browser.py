@@ -360,48 +360,6 @@ class Browser:
             self._profile_open = True
             self.driver.get(post_info.profile)
 
-    # Follow people who follow the currently opened profile
-    def follow_profile_followers(self, post_anchor:WebElement, count:int=1):
-        # Attempt to open profile
-        self.open_profile(post_anchor=post_anchor)
-        if getattr(self, "_profile_open", False):
-            all_links: List[WebElement] = self.driver.find_elements(By.CSS_SELECTOR, "a[role='link']")
-            followers_link = None
-            for link in all_links:
-                if link.accessible_name.find("followers") > -1:
-                    followers_link = link
-                    break
-            # Check if link was found
-            if followers_link:
-                # Open followers
-                self.to_element(followers_link)
-                followers_link.click()
-                # Wait for followers tab to load
-                try:
-                    # Wait for header to load first because dialog tab switches
-                    WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.XPATH, "//div[text()='Followers']")))
-                    followers_tab = WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div[role='dialog']")))
-                except TimeoutException as e:
-                    return
-                # Repeat until at least one follower loads
-                followed = 0
-                while followed == 0:
-                    # Get all buttons in followers tab
-                    all_buttons = followers_tab.find_elements(By.CSS_SELECTOR, "button")
-                    for follow_button in all_buttons:
-                        if follow_button.accessible_name.lower() == "follow":
-                            # Follow them
-                            self.to_element(follow_button)
-                            follow_button.click()
-                            followed += 1
-                            # Random delay
-                            time.sleep(random.random()/2)
-                            # Check count
-                            if followed >= count:
-                                break
-                    time.sleep(1)
-                print(f"Total accounts followed {followed}")
-
     # Get all comments from the comment section of the given post
     def get_comments(self, post_anchor:WebElement) -> List[str]:
         return PostInfo(self, post_anchor).comments
@@ -425,3 +383,77 @@ class Browser:
                 self.on_type(comment, Keys.ENTER, text_field)
                 # Wait after commenting
                 time.sleep(2 + random.random())
+
+    # Presses the given number of follow buttons
+    def click_follow_buttons(self, header:str, follow:bool, count:int=1, max_retries:int=10) -> int:
+        clicked = 0
+        all_links: List[WebElement] = self.driver.find_elements(By.CSS_SELECTOR, "a[role='link']")
+        followers_link = None
+        for link in all_links:
+            if link.accessible_name.find(header.lower()) > -1:
+                followers_link = link
+                break
+        # Check if link was found
+        if followers_link:
+            # Open followers
+            self.to_element(followers_link)
+            followers_link.click()
+            # Wait for followers tab to load
+            try:
+                # Wait for header to load first because dialog tab switches
+                WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.XPATH, f"//div[text()='{header}']")))
+                followers_tab = WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div[role='dialog']")))
+            except TimeoutException as e:
+                return
+            button_name = "follow" if follow else "following"
+            # Repeat until at least one button loads
+            retries = 0
+            while clicked == 0 and retries < max_retries:
+                # Get all buttons in followers tab
+                all_buttons = followers_tab.find_elements(By.CSS_SELECTOR, "button")
+                for follow_button in all_buttons:
+                    if follow_button.accessible_name.lower() == button_name:
+                        # Press button
+                        self.to_element(follow_button)
+                        follow_button.click()
+                        if not follow:
+                            # Check if cancel button appeared
+                            try:
+                                cancel_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Cancel']")))
+                                # Get unfollow button
+                                unfollow_dialog = cancel_button.find_element(By.XPATH, "..")
+                                unfollow_button = unfollow_dialog.find_element(By.XPATH, "//button[text()='Unfollow']")
+                                # Click unfollow button
+                                self.to_element(unfollow_button)
+                                unfollow_button.click()
+                            except TimeoutError as e:
+                                pass
+                        clicked += 1
+                        # Random delay
+                        time.sleep(1 + random.random())
+                        # Check count
+                        if clicked >= count:
+                            break
+                retries += 1
+                time.sleep(1)
+        return clicked
+
+    # Follow people who follow the currently opened profile
+    def follow_profile_followers(self, post_anchor:WebElement, count:int=1):
+        # Attempt to open profile
+        self.open_profile(post_anchor=post_anchor)
+        if getattr(self, "_profile_open", False):
+            # Follow profile followers
+            followed = self.click_follow_buttons("Followers", True, count)
+            print(f"Total accounts followed {followed}")
+
+    # Unfollow given number of accounts
+    def unfollow(self, count:int=1):
+        # Open followers page
+        if "username" in self.credentials.keys():
+            self.driver.get(f"https://www.instagram.com/{self.credentials["username"]}/")
+            # Unfollow
+            unfollowed = self.click_follow_buttons("Following", False, count)
+            print(f"Total accounts unfollowed {unfollowed}")
+        else:
+            print("Please enter your username in the credentials parameter to unfollow")
