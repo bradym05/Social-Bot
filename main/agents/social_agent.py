@@ -12,45 +12,6 @@ import re
 # SETTINGS
 COMMENTS_START = 3 # Start after the third top comment (avoids pinned comments)""
 BASE_IMAGE_INPUT = "Describe this image to me. Only describe what is in this image."
-QUERY_INPUT = """
-You will be given information from an instagram post.\n
-Generate a standalone search query to find relevant information. You output your search query in this format:\n
-    Query: [YOUR SEARCH QUERY] \n
-
-Here are some examples:
-    [INPUT]
-    POST CAPTION: The best open world games
-    IMAGE DESCRIPTION: A man standing in front of the distant moon at night
-    POST COMMENTS: Tlou and Uncharted???, Cyberpunk > Elden Ring, This gotta be bait, This list is… rly fuckin bad.
-
-    [YOUR OUTPUT]
-    Query: "What is the best open world game"
-    \n
-    [INPUT]
-    POST CAPTION: LEAVE JOE ALONE HES BEEN THROUGH ENOUGH ALREADY 😫😭😤🦧
-    IMAGE DESCRIPTION: An illustration of a plane with cartoon characters in the seats
-    POST COMMENTS: WE RIDE AT DAWN!!, Let’s go save Joe. Who’s with me button —>, He’s just a baby 😭
-
-    [YOUR OUTPUT]
-    Query: "Who is Joe from the plane?"
-    \n
-    [INPUT]
-    POST CAPTION: That’s enchanted with stick drift II 😭
-    IMAGE DESCRIPTION: A picture of a console wrapped in plastic with a controller on top
-    POST COMMENTS: Only a monster could do this, I do this everyday at work, When you find some good ass armor but it has curse of binding on it
-
-    [YOUR OUTPUT]
-    Query: "What is stick drift on consoles"
-    \n
-    [INPUT]
-    POST CAPTION: 40 video games releasing in 2026 🎮
-    IMAGE DESCRIPTION: A picture of a grid of game logos
-    POST COMMENTS: Fable oh how I've missed you 😍, And I got money for none of em, Fable?!?!?!😍, You’re forgetting subnautica 2
-
-    [YOUR OUTPUT]
-    Query: "What is the game Fable about"
-    \n
-"""
 
 # Declare social media LLM browser agent class
 class SocialAgent(SearchAgent):
@@ -193,6 +154,7 @@ class SocialAgent(SearchAgent):
                 break
         # Return final result
         return value_dict
+
     # Go through posts and process through LLM
     def process(self):
         # Get posts from browser
@@ -223,26 +185,8 @@ class SocialAgent(SearchAgent):
                             image_description[:100],
                             processed_comments,
                             ]
-                    # Initialize messages for search query
-                    query_messages = messages.copy()
-                    query_messages.append("[YOUR OUTPUT]:\nQuery: [YOUR SEARCH QUERY]")
                     # Generate query from post information
-                    search_query = self.llm.get_response(
-                        instructions=QUERY_INPUT,
-                        messages=query_messages
-                    )
-                    print(search_query)
-                    # Check if search query is formatted correctly
-                    if search_query.lower().find("query:") > -1:
-                        # Extract query
-                        search_query = search_query.lower().split("query:")[1].replace('"', "")
-                        # Search from found post info, in order of importance (highest to lowest)
-                        search_results = self.process_web_search(
-                            phrases=[search_query],
-                            query_chars=100
-                            )
-                    else:
-                        search_results = ""
+                    search_results = self.post_search(messages)
                     # Append search results
                     if len(search_results) > 0:
                         messages.append(f"\nSearch Results: {search_results}")

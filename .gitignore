@@ -3,8 +3,7 @@
 *.gguf
 *.pyc
 
-test.py
-test2.py
+__test*
 llama.log
 datastore
 testing

@@ -1,12 +1,13 @@
 # Dependencies
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.virtual_authenticator import VirtualAuthenticatorOptions
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
 from main.web.socials import BaseSocial, Instagram
@@ -16,6 +17,10 @@ from typing import Dict, List, Optional
 import time
 import random
 import atexit
+import urllib.parse as url_parse
+
+# Settings
+FEED_URL = "https://www.instagram.com/explore/"
 
 # Gets post info from the given browser and post
 class PostInfo:
@@ -204,22 +209,20 @@ class Browser:
             self.driver.switch_to.window(original_tab)
         # Return final results
         return final_results
-
+    
+    # Search given query on feed
+    def feed_search(self, query:str):
+        self.driver.get(FEED_URL + f"search/keyword/?q={url_parse.quote(query)}")
+            
     # Scroll through feed, return array of posts
     def feed_step(self, post_count:int=6) -> List[WebElement]:
         # Check current page
-        if self.driver.current_url == self.platform.login_url:
-            # Find and click feed button
-            try:
-                WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.NAME, self.platform.feed_button))).click()
-            except TimeoutException as e:
-                return []
-        elif str(self.driver.current_url) != self.platform.feed_url:
-            # Go straight to feed
-            self.driver.get(self.platform.feed_url)
-        else:
+        if str(self.driver.current_url).find(FEED_URL) > -1:
             # Scroll down
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        else:
+            # Go straight to feed
+            self.driver.get(self.platform.feed_url)
         time.sleep(2 + random.random())
         # Initialize variables
         selected_posts = []
@@ -409,8 +412,21 @@ class Browser:
             # Repeat until at least one button loads
             retries = 0
             while clicked == 0 and retries < max_retries:
-                # Get all buttons in followers tab
-                all_buttons = followers_tab.find_elements(By.CSS_SELECTOR, "button")
+                all_buttons = []
+                while len(all_buttons) < count:
+                    initial_length = len(all_buttons)
+                    # Hover over followers frame and scroll
+                    self.to_element(followers_tab)
+                    # Scroll down
+                    scroll_origin = ScrollOrigin.from_element(followers_tab)
+                    ActionChains(self.driver).scroll_from_origin(scroll_origin, 0, 1000).perform()
+                    # Give time for new accounts to load
+                    time.sleep(3)
+                    # Get all buttons in followers tab
+                    all_buttons = followers_tab.find_elements(By.CSS_SELECTOR, "button")
+                    # Stop scrolling if nothing new loaded
+                    if initial_length == len(all_buttons):
+                        break
                 for follow_button in all_buttons:
                     if follow_button.accessible_name.lower() == button_name:
                         # Press button
