@@ -12,7 +12,7 @@ class SearchAgent(BaseAgent):
         self, 
         browser:Browser, 
         llm:BaseLLM,
-        max_search_chars:int=150,
+        max_search_chars:int=400,
         censor:bool=True,
         ):
         # Initialize from superclass
@@ -40,15 +40,12 @@ class SearchAgent(BaseAgent):
         # Search for given query
         results = self.browser.search_web(query=query)
         result_string = ""
-        # Check if anything was found
-        if len(results) > 0:
-            # Append results to string
-            for r in results:
-                # Check if characters are less than maximum
-                if len(r) + len(result_string) < self.max_search_chars:
-                    # TODO - Check for profanity here
-                    result_string += f"{r}, "
-                else:
-                    break
+        # Append results to string
+        for r in results:
+            # TODO - Check for profanity here
+            result_string += f"{r}, "
+            # Check if max has been exceeded
+            if len(result_string) > self.max_search_chars:
+                break
         # Return final result string
         return result_string

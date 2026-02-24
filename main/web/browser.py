@@ -47,7 +47,11 @@ class PostInfo:
                     case "Reply": # Reply button only exists in comments
                         comment_div: WebElement = button.find_element(By.XPATH, "..")
                         if type(comment_div) == WebElement:
-                            self.comments.append(comment_div.find_element(By.XPATH, "..").text)
+                            # Get lines
+                            comment_lines = comment_div.find_element(By.XPATH, "..").text.splitlines()
+                            # Comment SHOULD be on the 3rd line
+                            if len(comment_lines) > 2 and comment_lines[2] != "Reply":
+                                self.comments.append(comment_lines[2])
                     case "Comment": # Comment button only exists in post buttons div
                         # Post buttons *should* be located in the second parent element
                         post_button_div = button.find_element(By.XPATH, "..").find_element(By.XPATH, "..")
@@ -71,7 +75,8 @@ class PostInfo:
 def to_bmp(string) -> str:
     typable = ""
     for char in string:
-        if (char.isalnum() and char.isascii) or char == " ":
+        #if (char.isalnum() and char.isascii) or char == " ":
+        if ord(char) <= 0xFFFF:
             typable += char
     return typable
 
@@ -120,7 +125,7 @@ class Browser:
     def on_type(self, query:str, character:str, element:EC.WebElement):
         if character == "":
             element.send_keys(Keys.BACKSPACE)
-        else:
+        elif ord(character) <= 0xFFFF:
             element.send_keys(character)
 
     # Humanize movement to element
@@ -203,10 +208,11 @@ class Browser:
                     self._on_timeout(e)
                 # Get results from container
                 all_results = results_container.find_elements(By.TAG_NAME, "article")
-                print("results: ", len(all_results))
                 for result_article in all_results:
                     if result_article.text and len(result_article.text) > 0:
-                        final_results.append(result_article.text)
+                        article_summary = result_article.text.splitlines()[-1]
+                        if len(article_summary) >= 30:
+                            final_results.append(result_article.text.splitlines()[-1])
             # Close search tab
             self.reset_tab()
         # Return final results

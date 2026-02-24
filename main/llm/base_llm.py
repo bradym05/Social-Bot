@@ -59,6 +59,8 @@ class BaseLLM():
     # Process image using NanoLLava
     def describe_image(self, image_url:str, message:Optional[str]="") -> str:
         try:
+            # Reset first
+            self.nanollava.reset()
             # Get model output
             output = self.nanollava.create_chat_completion(
                 messages = [

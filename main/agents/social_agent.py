@@ -63,7 +63,7 @@ class SocialAgent(SearchAgent):
         n_posts:int=5,
         min_comments:int=1,
         max_comments:int=10,
-        max_total_comment_chars:int=200,
+        max_total_comment_chars:int=400,
         max_description_chars:int=100,
         min_like_interest:int=50,
         min_follow_interest:int=80,
@@ -243,7 +243,7 @@ class SocialAgent(SearchAgent):
                     # Check if search query is formatted correctly
                     if search_query.lower().find("query:") > -1:
                         # Extract query
-                        search_query = search_query.lower().split("query:")[1]
+                        search_query = search_query.lower().split("query:")[1].replace('"', "")
                         # Search from found post info, in order of importance (highest to lowest)
                         search_results = self.process_web_search(
                             phrases=[search_query],
