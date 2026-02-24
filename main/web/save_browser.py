@@ -18,6 +18,7 @@ class SaveBrowser(Browser):
         super(SaveBrowser, self).__init__(*args, **kwargs)
         # Initialize variables
         self.custom_data = {}
+        self._cookies = []
         self._logged_in = False
     # Overwrite login function
     def login(self):
@@ -47,6 +48,9 @@ class SaveBrowser(Browser):
         else:
             # Call base function, store result
             self._logged_in = Browser.login(self)
+        # Save cookies if login was successful
+        if self._logged_in == True:
+            self._cookies = self.driver.get_cookies()
         return self._logged_in
     # Add custom save data
     def save_data(self, key, val):
@@ -64,9 +68,8 @@ class SaveBrowser(Browser):
             save_data = self.custom_data
             save_data['url'] = self.platform.feed_url
             # Save valid cookies
-            cookies = self.driver.get_cookies()
             valid = []
-            for c in cookies:
+            for c in self._cookies:
                 if 'value' in c and c['value'].find('\\') == -1:
                     valid.append(c)
             # Reference valid cookies

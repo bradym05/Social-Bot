@@ -63,12 +63,11 @@ class SocialAgent(SearchAgent):
         n_posts:int=5,
         min_comments:int=1,
         max_comments:int=10,
-        max_total_comment_chars:int=400,
-        max_description_chars:int=100,
+        max_total_comment_chars:int=300,
+        max_description_chars:int=150,
         min_like_interest:int=50,
         min_follow_interest:int=80,
         max_follow_accounts:int=4,
-        dislike_comment_interest:int=20,
         like_comment_interest:int=75,
         break_chance:int=10,
         comment_chance:float=0.8,
@@ -85,7 +84,6 @@ class SocialAgent(SearchAgent):
         self.min_like_interest = min_like_interest
         self.min_follow_interest = min_follow_interest
         self.max_follow_accounts = max_follow_accounts
-        self.dislike_comment_interest = dislike_comment_interest
         self.like_comment_interest = like_comment_interest
         self.break_chance = max(min(break_chance, 100), 0)
         self.min_break_length = min_break_length
@@ -227,7 +225,7 @@ class SocialAgent(SearchAgent):
                     processed_comments = self.get_processed_comments(post=post)
                     # Initialize variables
                     messages=[
-                            processed_description[:100],
+                            processed_description,
                             image_description[:100],
                             processed_comments,
                             ]
@@ -274,9 +272,9 @@ class SocialAgent(SearchAgent):
                             self.browser.like_post(post_anchor=post)
                             # Wait before proceeding
                             time.sleep(1 * random.random())
-                        # Comment based on random chance, and if below dislike interest, or above like interest
+                        # Comment based on random chance (and like interest)
                         comment_chance = random.random()
-                        if comment_chance > 1 - self.comment_chance and interest < self.dislike_comment_interest or interest > self.like_comment_interest:
+                        if comment_chance > 1 - self.comment_chance and interest > self.like_comment_interest:
                             # Make comment
                             print("MAKING COMMENT")
                             self.browser.comment_post(post_anchor=post, comment=comment)
