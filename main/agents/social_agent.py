@@ -12,6 +12,11 @@ import re
 # SETTINGS
 COMMENTS_START = 3 # Start after the third top comment (avoids pinned comments)""
 BASE_IMAGE_INPUT = "Describe this image to me. Only describe what is in this image."
+FEED_QUERY_INPUT = """
+You will be given information about a instagram user.\n
+Generate a NEW search query to find posts the user miight like. You output your search query in this format:\n
+    Query: [YOUR SEARCH QUERY] \n
+"""
 
 # Declare social media LLM browser agent class
 class SocialAgent(SearchAgent):
@@ -53,11 +58,12 @@ class SocialAgent(SearchAgent):
         self.max_break_length = max_break_length
         self.comment_chance = comment_chance
         self.post_history = []
-        self._save = False
+        self.search_history = []
+        self._save = getattr(browser, "_save", False)
         # Check if browser is a save browser
-        if getattr(self.browser, "custom_data", False):
-            self._save = True
+        if self._save:
             self.post_history = self.browser.get_data("post_history") or []
+            self.search_history = self.browser.get_data("search_history") or []
     # Randomly take a break
     def random_break(self):
         # Check if random chance is within chosen chance
@@ -154,10 +160,28 @@ class SocialAgent(SearchAgent):
                 break
         # Return final result
         return value_dict
-
+    # Generate search query and search on insta feed
+    def feed_search(self):
+        # Message to prevent repititon
+        if len(self.search_history) > 0:
+            history = f'\nYour Search History [NEVER REPEAT THESE SEARCHES]: "{'", "'.join(self.search_history)}'
+        else:
+            history = ""
+        feed_query = self.get_query(
+            messages=self.llm.interests,
+            instructions=FEED_QUERY_INPUT+history
+        )
+        if feed_query:
+            # Update search history and save
+            self.search_history.append(feed_query)
+            if self._save:
+                self.browser.save_data("search_history", self.search_history)
+            # Search
+            self.browser.feed_search(feed_query)
     # Go through posts and process through LLM
     def process(self):
         # Get posts from browser
+        self.feed_search()
         selection = self.browser.feed_step()
         # Go through n selected posts
         for n in range(self.n_posts):
@@ -174,6 +198,7 @@ class SocialAgent(SearchAgent):
                     # Update post history and save
                     self.post_history.append(url)
                     if self._save:
+                        print("saving post")
                         self.browser.save_data("post_history", self.post_history)
                     # Get post information
                     image_description = self.describe_post_image(post=post)
@@ -220,7 +245,7 @@ class SocialAgent(SearchAgent):
                         if interest >= self.min_follow_interest:
                             # Follow
                             print("FOLLOWING ACCOUNT FOLLOWERS")
-                            self.browser.follow_profile_followers(post_anchor=post)
+                            self.browser.follow_profile_followers(post_anchor=post, count=random.randint(1, self.max_follow_accounts))
                     # Wait on post
                     time.sleep((1 + random.random()) * (2 + random.random()))
                     # Close post

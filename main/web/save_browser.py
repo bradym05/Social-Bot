@@ -20,6 +20,7 @@ class SaveBrowser(Browser):
         self.custom_data = {}
         self._cookies = []
         self._logged_in = False
+        self._save = True
     # Overwrite login function
     def login(self):
         # Load data
@@ -84,5 +85,6 @@ class SaveBrowser(Browser):
                     mkdir(SAVE_FOLDER)
             with open(SAVE_PATH, mode) as f:
                 pickle.dump(save_data, f)
+            print("Session saved successfully")
             # Close normally
             Browser._close(self)

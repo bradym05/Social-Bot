@@ -42,7 +42,7 @@ class PostInfo:
         # Yield until comment form loads
         try:
             self.comment_input = WebDriverWait(browser.driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "form")))
-        except TimeoutError as e:
+        except TimeoutException as e:
             self.comment_input = None
         # Find all buttons
         all_buttons: List[WebElement] = browser.driver.find_elements(By.CSS_SELECTOR, "div[role='button']")
@@ -442,7 +442,7 @@ class Browser:
                                 # Click unfollow button
                                 self.to_element(unfollow_button)
                                 unfollow_button.click()
-                            except TimeoutError as e:
+                            except TimeoutException as e:
                                 pass
                         clicked += 1
                         # Random delay

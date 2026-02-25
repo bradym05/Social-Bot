@@ -25,6 +25,7 @@ class BaseLLM():
     # Initialize object
     def __init__(
         self, 
+        chat_context:str="",
         chat_instructions:str="", 
         img_instructions:str="", 
         max_tokens:int=128, 
@@ -39,6 +40,7 @@ class BaseLLM():
             n_ctx=CONTEXT_LENGTH * 2, 
             chat_format="llama-3")
         # Setup image chat model
+        self.chat_context = chat_context
         self.nanollava_handler = NanoLlavaChatHandler(clip_model_path=rf"{NANOLLAVA_CLIP_PATH}") # Image clip model
         self.nanollava = Llama(
             model_path=rf"{NANOLLAVA_PATH}", 
@@ -93,7 +95,7 @@ class BaseLLM():
                 continue
         # Check for custom instructions
         if instructions == None:
-            instructions = self.chat_instructions
+            instructions = self.chat_context + self.chat_instructions
         # Create input
         input_messages = [{"role": "system", "content": instructions}]
         for m in messages:
@@ -113,10 +115,6 @@ class BaseLLM():
             )
             # Retrieve output message
             output_message = output['choices'][0]['message']['content']
-            # TODO Check output message for profanity
-            #if profanity.contains_profanity(output_message):
-            #    print(f"CENSORED OUTPUT: {output_message}")
-            #    return ""
             return output_message
         except ValueError:
             print("MAX TOKENS EXCEEDED")

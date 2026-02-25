@@ -28,8 +28,9 @@ class SocialMediaLLM(BaseLLM):
         slang:List=[],
         max_tokens:int=128
         ):
+        self.interests = interests
         # Build instructions
-        chat_instructions = f"You are the {role}, {name}. You are using {platform} to {platform_usage}\n"
+        chat_context = f"You are the {role}, {name}. You are using {platform} to {platform_usage}\n"
         img_instructions = f"You perfectly describe key details of social media posts. You are using {platform} to {platform_usage}\n"
         # Check for interests
         if len(interests) > 0:
@@ -38,25 +39,25 @@ class SocialMediaLLM(BaseLLM):
             for interest in interests:
                 interest_list += f"- {interest}\n"
             # Append to instructions
-            chat_instructions += interest_list
-            chat_instructions += "IF A POST IS NOT DIRECTLY RELATED TO YOUR INTERESTS YOUR INTEREST SHOULD BE 0%"
+            chat_context += interest_list
         # Check for goals
         if len(goals) > 0:
-            chat_instructions += "Your goals are:\n"
+            chat_context += "Your goals are:\n"
             # Append goals in list format
             for goal in goals:
-                chat_instructions += f"- {goal}\n"
+                chat_context += f"- {goal}\n"
         # Check for slang
         if len(slang) > 0:
-            chat_instructions += "Your slang (slang marked by *) and their meanings (unmarked) are:\n"
+            chat_context += "Your slang (slang marked by *) and their meanings (unmarked) are:\n"
             for pair in slang:
-                chat_instructions += f"- {pair}\n"
+                chat_context += f"- {pair}\n"
         # Append other instructions if given
-        chat_instructions += CHAIN_OF_THOUGHT
+        chat_instructions = CHAIN_OF_THOUGHT
         chat_instructions += f"IMPORTANT COMMENT RULES: {grammar_instructions}\n" if len(grammar_instructions) > 0 else ""
         chat_instructions += f"Here are some samples:\n{sample_responses}" if len(sample_responses) > 0 else ""
         # Initialize from superclass
         super(SocialMediaLLM, self).__init__(
+            chat_context=chat_context,
             chat_instructions=chat_instructions, 
             img_instructions=img_instructions,
             max_tokens=max_tokens,

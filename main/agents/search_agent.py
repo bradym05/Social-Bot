@@ -87,20 +87,26 @@ class SearchAgent(BaseAgent):
         # Return final result string
         return result_string
     
-    # Generate search query and return results from post info
-    def post_search(self, messages:List[str]):
+    # Generate and extract a search query
+    def get_query(self, messages:List[str], instructions:str=QUERY_INPUT) -> str | None:
         # Initialize messages for search query
         query_messages = messages.copy()
         query_messages.append("[YOUR OUTPUT]:\nQuery: [YOUR SEARCH QUERY]")
         # Generate query from post information
         search_query = self.llm.get_response(
-            instructions=QUERY_INPUT,
+            instructions=instructions,
             messages=query_messages
         )
         # Check if search query is formatted correctly
         if search_query.lower().find("query:") > -1:
             # Extract query
-            search_query = search_query.lower().split("query:")[1].replace('"', "")
+            return search_query.lower().split("query:")[1].replace('"', "")
+        
+    # Generate search query and return results from post info
+    def post_search(self, messages:List[str]):
+        search_query = self.get_query(messages)
+        # Check if search query is formatted correctly
+        if search_query:
             # Search from found post info, in order of importance (highest to lowest)
             return self.process_web_search(
                 phrases=[search_query],
