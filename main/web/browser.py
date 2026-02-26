@@ -59,7 +59,7 @@ class PostInfo:
                                 self.comments.append(comment_lines[2])
                     case "Comment": # Comment button only exists in post buttons div
                         # Post buttons *should* be located in the second parent element
-                        post_button_div = button.find_element(By.XPATH, "..").find_element(By.XPATH, "..")
+                        post_button_div = button.find_element(By.XPATH, "../..")
                         # Iterate over all post buttons
                         for post_button in post_button_div.find_elements(By.CSS_SELECTOR, "div[role='button']"):
                             if post_button.accessible_name == "Like":
@@ -68,7 +68,7 @@ class PostInfo:
                     case "Follow":
                         self.follow_button = button
                         # Profile link *should* be located in the second parent element
-                        post_header_div = button.find_element(By.XPATH, "..").find_element(By.XPATH, "..")
+                        post_header_div = button.find_element(By.XPATH, "../..")
                         post_author_link = post_header_div.find_element(By.CSS_SELECTOR, "a[role='link']")
                         # Iterate over all header buttons
                         self.author = post_author_link.text
