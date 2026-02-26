@@ -14,7 +14,10 @@ COMMENTS_START = 3 # Start after the third top comment (avoids pinned comments)"
 BASE_IMAGE_INPUT = "Describe this image to me. Only describe what is in this image."
 FEED_QUERY_INPUT = """
 You will be given information about a instagram user.\n
-Generate a NEW search query to find posts the user miight like. You output your search query in this format:\n
+Generate a NEW search query (DO NOT USE ANY QUERY THAT YOU HAVE ALREADY USED) to find posts the user might like.\n
+NEVER REPEAT any of the searches that are listed in your search history.\n
+DO NOT make searches that are similar to anything in your search history.\n
+You output your search query in this format:\n
     Query: [YOUR SEARCH QUERY] \n
 """
 
