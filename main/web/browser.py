@@ -13,6 +13,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from main.web.socials import BaseSocial, Instagram
 from main.inputs import Typer
 from typing import Dict, List, Optional
+from utils.chrome import no_indicators
 
 import time
 import random
@@ -87,7 +88,7 @@ class Browser:
         timeout_callback:Optional[callable]=False
         ):
         # Initialize variables
-        self.driver = webdriver.Chrome()
+        self.driver = no_indicators()
         self.driver.delete_all_cookies()
         self.typer = Typer(type_callback=self.on_type)
         self.platform = platform
