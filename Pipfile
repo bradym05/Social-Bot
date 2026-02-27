@@ -8,7 +8,6 @@ selenium = "*"
 numpy = "*"
 langchain-community = "*"
 llama-cpp-python = "*"
-fake-useragent = "*"
 
 [dev-packages]
 

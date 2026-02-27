@@ -1,19 +1,13 @@
-import json
-
 from selenium import webdriver
-from fake_useragent import UserAgent
 
 def no_indicators():
     """
     Returns a webdriver instance with:
     - Fake chrome user agent
     - Automation indicators removed (https://www.zenrows.com/blog/selenium-avoid-bot-detection#disable-automation-indicator-webdriver-flags)
-    
     """
-    
     # Setup options
     options = webdriver.ChromeOptions()
-    options.add_argument(f"--user-agent={UserAgent().chrome}")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"]) 
     options.add_experimental_option("useAutomationExtension", False)
