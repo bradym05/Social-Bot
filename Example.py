@@ -7,15 +7,15 @@ import time
 
 # Create browser
 browser = SaveBrowser(
-    credentials={
-        'username':"YOUR USERNAME HERE",
-        'password':"YOUR PASSWORD HERE"
-    },
+    username="YOUR USERNAME"
 )
 print("Browser created. Logging in...")
 
 # First, login
-loginSuccess = browser.login()
+loginSuccess = browser.login(
+    sessionid="YOUR SESSIONID COOKIE"
+)
+
 if loginSuccess:
 
     # Wait a few seconds for page to load

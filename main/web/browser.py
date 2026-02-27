@@ -1,5 +1,4 @@
 # Dependencies
-from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.virtual_authenticator import VirtualAuthenticatorOptions
@@ -10,10 +9,9 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
-from main.web.socials import BaseSocial, Instagram
 from main.inputs import Typer
-from typing import Dict, List, Optional
-from utils.chrome import no_indicators
+from typing import List, Optional
+from main.utils.chrome import no_indicators
 
 import time
 import random
@@ -21,7 +19,8 @@ import atexit
 import urllib.parse as url_parse
 
 # Settings
-FEED_URL = "https://www.instagram.com/explore/"
+HOME_URL = "https://www.instagram.com/"
+FEED_URL = HOME_URL + "explore/"
 
 # Gets post info from the given browser and post
 class PostInfo:
@@ -73,7 +72,7 @@ class PostInfo:
                         post_author_link = post_header_div.find_element(By.CSS_SELECTOR, "a[role='link']")
                         # Iterate over all header buttons
                         self.author = post_author_link.text
-                        self.profile = f"https://www.instagram.com/{self.author}/"
+                        self.profile = f"{HOME_URL}{self.author}/"
             except StaleElementReferenceException as e:
                 continue
 
@@ -82,17 +81,27 @@ class Browser:
     # Initialize object
     def __init__(
         self,
-        credentials:Dict['username':str, 'password':str],
-        platform:BaseSocial=Instagram,
+        username:str,
         timeout_exit:bool=True,
         timeout_callback:Optional[callable]=False
         ):
+        """
+        Create a new browser object.
+
+        Parameters
+        ----------
+        username : str
+            Your instagram account username.
+        timeout_exit : bool
+            Automatically exit when an unhandled TimeoutException occurs.
+        timeout_callback : Optional[callable]
+            Callback when an unhandled TimeoutException occurs.
+        """
         # Initialize variables
         self.driver = no_indicators()
         self.driver.delete_all_cookies()
         self.typer = Typer(type_callback=self.on_type)
-        self.platform = platform
-        self.credentials = credentials
+        self.username = username
         self.timeout_exit = timeout_exit
         self.timeout_callback = timeout_callback
         # Setup virtual authenticator
@@ -128,40 +137,73 @@ class Browser:
     # Humanize movement to element
     def to_element(self, element):
         ActionChains(self.driver, 250 + random.random() * 500).move_to_element_with_offset(element, random.randint(-2, 2), random.randint(-1, 1))
-    # Get requested site and login
-    def login(self):
+
+    # Login using sessionid cookie
+    def login(self, sessionid:str|None=None, password:str|None=None) -> bool:
+        """
+        Login has two options:
+        - Login by adding your account's sessionid cookie (recommended) 
+        - Attempt to login w/ password. This is likely to fail and may require you
+        to retry several times before succeeding.
+        
+        Parameters
+        ----------
+        sessionid : str | None
+            The VALUE of your sessionid cookie. You can obtain this by logging in to
+            instagram on chrome and navigating to the application tab in
+            inspect element. It will be in storage/cookies/https://www.instagram.com
+        password : str | None
+            Your instagram account's password.
+        
+        Returns
+        -------
+        bool
+            The result of the login attempt
+        """
         # Load site
-        self.driver.get(self.platform.login_url)
-        # Getters (used multiple times)
-        getPassword = lambda x : WebDriverWait(x, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='password']")))
-        # Get input fields
-        try:
-            username = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='text']")))
-            password = getPassword(self.driver)
-        except TimeoutException as e:
-            self._on_timeout(e)
-        # Type in login credentials
-        self.to_element(username)
-        self.typer.type_query(self.credentials['username'], username)
-        self.to_element(password)
-        self.typer.type_query(self.credentials['password'], password)
-        # Submit after filling out fields
-        time.sleep(random.random())
-        password.send_keys(Keys.ENTER)
-        # Wait for next page to load
-        try:
-            WebDriverWait(self.driver, 10).until(EC.staleness_of(password))
-        except TimeoutException as e:
-            self._on_timeout(e)
-        # Wait for continue button, catch timeout error WITHOUT exiting program (button doesn't always appear)
-        continueButton = False
-        try:
-            continueButton = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div[aria-label='Continue']")))
-        except TimeoutException as e:
-            print("Login Successful")
-        # Check if continue button was found
-        return not continueButton
-    
+        self.driver.get("https://www.instagram.com")
+        # Check if session id was given
+        if sessionid:
+            # Add session id 
+            self.driver.add_cookie({
+                "name": "sessionid",
+                "value": sessionid
+            })
+            # Reload page
+            self.driver.refresh()
+            return True
+        elif password:
+            # Get input fields
+            try:
+                usernameField = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='text']")))
+                passwordField = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='password']")))
+            except TimeoutException as e:
+                self._on_timeout(e)
+            # Type in login credentials
+            self.to_element(usernameField)
+            self.typer.type_query(self.username, usernameField)
+            self.to_element(passwordField)
+            self.typer.type_query(password, passwordField)
+            # Submit after filling out fields
+            time.sleep(random.random())
+            passwordField.send_keys(Keys.ENTER)
+            # Wait for next page to load
+            try:
+                WebDriverWait(self.driver, 10).until(EC.staleness_of(passwordField))
+            except TimeoutException as e:
+                self._on_timeout(e)
+            # Wait for continue button, catch timeout error WITHOUT exiting program (if this button appears it means the login failed)
+            continueButton = False
+            try:
+                continueButton = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div[aria-label='Continue']")))
+                print("Login Failed")
+            except TimeoutException as e:
+                print("Login Successful")
+            # Check if continue button was found
+            return not continueButton
+        else:
+            return False
+
     # Search the web for the given query, returns top sites
     def search_web(self, query:str) -> List[str]:
         final_results = []
@@ -231,7 +273,7 @@ class Browser:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         else:
             # Go straight to feed
-            self.driver.get(self.platform.feed_url)
+            self.driver.get(FEED_URL)
         time.sleep(2 + random.random())
         # Initialize variables
         selected_posts = []
@@ -241,7 +283,7 @@ class Browser:
             time.sleep(random.random()/10)
             post_anchors = self.driver.find_elements(by=By.TAG_NAME, value="a")
             post_anchors = [[anchor, anchor.get_attribute("href")] for anchor in post_anchors]
-            post_anchors = [anchor[0] for anchor in post_anchors if anchor[1].startswith("https://www.instagram.com/p/")]
+            post_anchors = [anchor[0] for anchor in post_anchors if anchor[1].startswith(f"{HOME_URL}p/")]
         # Validate post count
         if len(post_anchors) >= post_count:
             # Select posts randomly
@@ -475,10 +517,7 @@ class Browser:
     # Unfollow given number of accounts
     def unfollow(self, count:int=1):
         # Open followers page
-        if "username" in self.credentials.keys():
-            self.driver.get(f"https://www.instagram.com/{self.credentials["username"]}/")
-            # Unfollow
-            unfollowed = self.click_follow_buttons("Following", False, count)
-            print(f"Total accounts unfollowed {unfollowed}")
-        else:
-            print("Please enter your username in the credentials parameter to unfollow")
+        self.driver.get(f"{HOME_URL}{self.username}/")
+        # Unfollow
+        unfollowed = self.click_follow_buttons("Following", False, count)
+        print(f"Total accounts unfollowed {unfollowed}")

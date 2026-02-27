@@ -1,7 +1,6 @@
 # Dependencies
 from main.web import Browser
 from os import path, mkdir
-from time import time
 
 import pickle
 
@@ -21,61 +20,40 @@ class SaveBrowser(Browser):
         self._cookies = []
         self._logged_in = False
         self._save = True
-    # Overwrite login function
-    def login(self):
+
+    # Override login function
+    def login(self, **kwargs):
         # Load data
         if path.exists(SAVE_PATH):
             with open(SAVE_PATH, 'rb') as f:
-                # Load file
-                data = pickle.load(f)
-                # Go to last page
-                last_page = data['url']
-                self.driver.get(last_page)
-                # Load cookies
-                for c in data['cookies']:
-                    if 'expiry' in c:
-                        if float(c['expiry']) < time():
-                            continue
-                    self.driver.add_cookie(c)
-                # Remove loaded keys
-                data.pop('url')
-                data.pop('cookies')
-                # Load custom data
-                for k, v in data.items():
-                    self.custom_data[k] = v
-                # Reload page
-                self.driver.refresh()
-                self._logged_in = True
-        else:
-            # Call base function, store result
-            self._logged_in = Browser.login(self)
-        # Save cookies if login was successful
+                # Load data
+                self.data = pickle.load(f)
+                # Load sessionid
+                if 'sessionid' in self.data:
+                    self._logged_in = Browser.login(self, sessionid=self.data['sessionid'])
+                    return self._logged_in
+        # Call base function, store result and return
+        self._logged_in = Browser.login(self, **kwargs)
+        # Save session id if login was successful
         if self._logged_in == True:
-            self._cookies = self.driver.get_cookies()
+            cookie = self.driver.get_cookie("sessionid")
+            if cookie:
+                self.data['sessionid'] = cookie["value"]
         return self._logged_in
-    # Add custom save data
+
+    # Add save data
     def save_data(self, key, val):
-        self.custom_data[key] = val
-    # Get custom saved data
+        self.data[key] = val
+    # Get saved data
     def get_data(self, key):
-        if key in self.custom_data:
-            return self.custom_data[key]
+        if key in self.data:
+            return self.data[key]
         return False
+    
     # Overwrite close function
     def _close(self):
         # Make sure login was successful first
         if self._logged_in:
-            # Initialize data
-            save_data = self.custom_data
-            save_data['url'] = self.platform.feed_url
-            # Save valid cookies
-            valid = []
-            for c in self._cookies:
-                #if 'value' in c and c['value'].find('\\') == -1:
-                if 'name' in c and c['name'] == "sessionid":
-                    valid.append(c)
-            # Reference valid cookies
-            save_data['cookies'] = valid
             # Write save file accordingly
             if path.exists(SAVE_PATH):
                 mode = 'wb'
@@ -85,7 +63,7 @@ class SaveBrowser(Browser):
                 if not path.exists("datastore"):
                     mkdir(SAVE_FOLDER)
             with open(SAVE_PATH, mode) as f:
-                pickle.dump(save_data, f)
+                pickle.dump(self.data, f)
             print("Session saved successfully")
             # Close normally
             Browser._close(self)
