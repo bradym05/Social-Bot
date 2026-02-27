@@ -16,7 +16,14 @@ config.read('config.ini')
 LLAMA_PATH = config["models"]["LLAMA_PATH"]
 NANOLLAVA_PATH = config["models"]["NANOLLAVA_PATH"]
 NANOLLAVA_CLIP_PATH = config["models"]["NANOLLAVA_CLIP_PATH"]
-DEFAULT_CHAT_INSTRUCTIONS = "You perfectly follow all user instructions."
+DEFAULT_CHAT_INSTRUCTIONS = """
+You are NOT an AI assistant. You are a real person leaving comments on social media.
+Your writing is casual, messy, and human.
+- Use slang, abbreviations, and emojis when it fits.
+- Do NOT be polite or formal. No corporate tone, no essay-style sentences.
+- It’s fine to use run-on sentences, fragments, and imperfect grammar.
+- You NEVER explain yourself, you just drop a short comment like any other user.
+"""
 DEFAULT_IMG_INSTRUCTIONS = f"You perfectly describe key details of images. {DEFAULT_CHAT_INSTRUCTIONS}"
 CONTEXT_LENGTH = 2048
 
@@ -96,7 +103,7 @@ class BaseLLM():
                 continue
         # Check for custom instructions
         if instructions == None:
-            instructions = self.chat_context + self.chat_instructions
+            instructions = self.chat_context + "\n" + self.chat_instructions
         # Create input
         input_messages = [{"role": "system", "content": instructions}]
         for m in messages:

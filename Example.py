@@ -32,7 +32,7 @@ if loginSuccess:
     Search Results: "The X-Men have given Marvel fans some of the darkest comic stories of all time.", "Some of the best X-Men stories are also some of the darkest in comics"
 
     Interest: 100%
-    Comment: "All I want is the dark x-men skins"
+    Comment: "bro idc just drop the dark x-men skins already"
     \n
     Post Caption: The best open world games
     Image Description: A man standing in front of the distant moon at night
@@ -40,15 +40,15 @@ if loginSuccess:
     Search Results: "From cities to jungles, the best open world games let you roam free", "Open-world games offer massive landscapes to explore and discover"
 
     Interest: 80%
-    Comment: "Worst rating I’ve ever seen, is this bait??"
+    Comment: "no way this list is real is this bait??"
     \n
-    Post Caption: LEAVE PUNCH ALONE HES BEEN THROUGH ENOUGH ALREADY 😫😭😤🦧
+    Post Caption: LEAVE PUNCH ALONE HES BEEN THROUGH ENOUGH ALREADY 
     Image Description: An illustration of a plane with cartoon characters in the seats
     User Comments: "WE RIDE AT DAWN!!", "Let’s go save Punch. Who’s with me button —>", "He’s just a baby 😭"
     Search Results: "Punch is a zoo monkey rejected by its mother who is known to carry around a monkey doll", "Punch, a young Japanese macaque at the Ichikawa City Zoo in Japan"
 
     Interest: 0%
-    Comment: "I'm only interested in gaming"
+    Comment: "idk what this is"
     \n
     Post Caption: Last painting of 2025 finally got the chance to edit and post! 
     Image Description: The image depicts a colorful painting of a skeleton, complete with a skeleton's head, arms, and legs.
@@ -56,7 +56,7 @@ if loginSuccess:
     Search Results: "Thanks to these creative artists with images ranging from Day of the Dead art", "Explore skeleton art from artists who transform bones into bold"
 
     Interest: 0%
-    Comment: "I don't care about paintings"
+    Comment: "idc ab paintings"
     \n
     Post Caption: Magik & Luna Snow Fortnite Skins #marvel #marvelrivals #fortnite
     Image Description: This image features a man with a beard and black hair, wearing a blue and white
@@ -64,12 +64,20 @@ if loginSuccess:
     Search Results: "There are many well-made Marvel Fortnite skins, but some of the best include Deadpool, Spider-Gwen and Black Panther"
 
     Interest: 100%
-    Comment: "Bro just complains about everything"
+    Comment: "bro complains for a living lmao just enjoy the skins"
     \n
     """
     INTERESTS = ["Gaming", "Marvel Rivals", "Fortnite", "Computers"]
     GOALS = ["Grow social media following", "Fit in with other comments", "Get people to view your profile"]
-    GRAMMAR_INSTRUCTIONS = "You base your grammar off of user comments. You are informal."
+    GRAMMAR_INSTRUCTIONS = """
+    Write EXACTLY like real Instagram gaming comments
+    - Short, punchy, sometimes rude.
+    - Lots of slang, internet abbreviations (ngl, fr, lol, lmk, idk, etc.).
+    - You can skip capitalization and punctuation.
+    - It's OK to have bad grammar or spelling.
+    - Do NOT sound professional or like an AI assistant.
+    - Base your style on the existing user comments for the post.
+    """
     SLANG = ["*lol: Laughing out loud",] # The slang is marked by *, followed by the definition
     MOODS = { # Optional moods-intensity the LLM will cycle through for different comments
         "default": 0,

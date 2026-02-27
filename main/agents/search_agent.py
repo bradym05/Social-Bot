@@ -5,6 +5,7 @@ from main.agents.base_agent import BaseAgent
 from typing import List
 
 # SETTINGS
+MAX_HISTORY_LENGTH = 10 # Delete search history after this length
 QUERY_INPUT = """
 You will be given information from an instagram post.\n
 Generate a standalone search query to find relevant information. You output your search query in this format:\n
@@ -60,7 +61,11 @@ class SearchAgent(BaseAgent):
         self.browser = browser
         self.llm = llm
         self.max_search_chars = max_search_chars
-    
+        self.search_history = []
+        # Check if browser is a save browser
+        if self._save:
+            self.search_history = self.browser.get_data("search_history") or []
+
     # Basic web search function
     def process_web_search(self, phrases:List[str], query_chars:int=60) -> str:
         # Create query from given phrases
@@ -88,9 +93,12 @@ class SearchAgent(BaseAgent):
         return result_string
     
     # Generate and extract a search query
-    def get_query(self, messages:List[str], instructions:str=QUERY_INPUT) -> str | None:
+    def get_query(self, messages:List[str], instructions:str=QUERY_INPUT, record:bool=False) -> str | None:
         # Initialize messages for search query
         query_messages = messages.copy()
+        # Prevent repititon if search history is enabled
+        if record and len(self.search_history) > 0:
+            query_messages.append(f'Search History: "{'", "'.join(self.search_history)}' +"\n")
         query_messages.append("[YOUR OUTPUT]:\nQuery: [YOUR SEARCH QUERY]")
         # Generate query from post information
         search_query = self.llm.get_response(
@@ -100,8 +108,17 @@ class SearchAgent(BaseAgent):
         )
         # Check if search query is formatted correctly
         if search_query.lower().find("query:") > -1:
+            search_query = search_query.lower().split("query:")[1].replace('"', "")
+            if record:
+                # Update search history and save
+                self.search_history.append(search_query)
+                if len(self.search_history) > MAX_HISTORY_LENGTH:
+                    for _ in range(len(self.search_history) - MAX_HISTORY_LENGTH):
+                        self.search_history.pop(0) # remove oldest search
+                if self._save:
+                    self.browser.save_data("search_history", self.search_history)
             # Extract query
-            return search_query.lower().split("query:")[1].replace('"', "")
+            return search_query
         
     # Generate search query and return results from post info
     def post_search(self, messages:List[str]):
@@ -115,4 +132,3 @@ class SearchAgent(BaseAgent):
                 )
         else:
             return ""
-        

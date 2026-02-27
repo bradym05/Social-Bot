@@ -21,6 +21,7 @@ import urllib.parse as url_parse
 # Settings
 HOME_URL = "https://www.instagram.com/"
 FEED_URL = HOME_URL + "explore/"
+COOLDOWN_LENGTH = 86400
 
 # Gets post info from the given browser and post
 class PostInfo:
@@ -104,6 +105,7 @@ class Browser:
         self.username = username
         self.timeout_exit = timeout_exit
         self.timeout_callback = timeout_callback
+        self.cooldown_started = False
         # Setup virtual authenticator
         self.driver.add_virtual_authenticator(
             VirtualAuthenticatorOptions()
@@ -440,6 +442,14 @@ class Browser:
 
     # Presses the given number of follow buttons
     def click_follow_buttons(self, header:str, follow:bool, count:int=1, max_retries:int=10) -> int:
+        # Don't proceed if cooldown started
+        if self.cooldown_started:
+            print("CANNOT FOLLOW ON COOLDOWN")
+            # Disable cooldown after set length
+            if time.time() - self.cooldown_started >= COOLDOWN_LENGTH:
+                self.cooldown_started = False
+            else:
+                return 0
         clicked = 0
         all_links: List[WebElement] = self.driver.find_elements(By.CSS_SELECTOR, "a[role='link']")
         followers_link = None
@@ -462,7 +472,7 @@ class Browser:
             button_name = "follow" if follow else "following"
             # Repeat until at least one button loads
             retries = 0
-            while clicked == 0 and retries < max_retries:
+            while clicked == 0 and retries < max_retries and not self.cooldown_started:
                 all_buttons = []
                 while len(all_buttons) < count:
                     initial_length = len(all_buttons)
@@ -483,6 +493,14 @@ class Browser:
                         # Press button
                         self.to_element(follow_button)
                         follow_button.click()
+                        # Check if on cooldown first
+                        try:
+                            WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, "//*[text()='Try Again Later']")))
+                            print("FOLLOW COOLDOWN DETECTED")
+                            self.cooldown_started = time.time()
+                            break
+                        except TimeoutException as e:
+                            pass
                         if not follow:
                             # Check if cancel button appeared
                             try:

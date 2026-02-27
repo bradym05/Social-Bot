@@ -14,3 +14,4 @@ class BaseAgent:
         # Initialize variables
         self.browser = browser
         self.llm = llm
+        self._save = getattr(browser, "_save", False)

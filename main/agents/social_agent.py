@@ -10,113 +10,116 @@ import time
 import re
 
 # SETTINGS
-MAX_HISTORY_LENGTH = 10 # Delete search history after this length
 COMMENTS_START = 3 # Start after the third top comment (avoids pinned comments)""
 BASE_IMAGE_INPUT = "Describe this image to me. Only describe what is in this image."
 FEED_QUERY_INPUT = """
 You are a search query generator for Instagram interests.
 
-YOUR TASK
+GOAL
 - You will be given information about an Instagram user.
-- You must generate ONE NEW search query that could find posts this user might like.
-- The query must be DIFFERENT from all queries in the provided search history.
+- You will also be given a search history: a list of past queries.
+- You must generate ONE NEW search query that the user might like.
+- The new query must be clearly different from every query in the search history.
 
 INPUT FORMAT
-You will receive text like this:
+You will receive something like:
 
-User info:
-[description of user, interests, recent likes, etc.]
+User info: [description of user, likes, interests, etc.]
 
-Search history:
-1) [previous query 1]
-2) [previous query 2]
-3) [previous query 3]
-...
+search_history: ['first query here', 'second query here', 'third query here']
 
-WHAT YOU MUST DO
+IMPORTANT RULES ABOUT SEARCH HISTORY
+- Treat every string inside search_history as a past query.
+- You MUST avoid repeating them.
+- Your new query must NOT:
+  - Be exactly the same as any query in search_history.
+  - Use the same main phrase in the same order.
+- Always include AT LEAST ONE word that does NOT appear in ANY of the queries in search_history.
 
-1. Read the user info.
-   - Identify the user’s interests, hobbies, style, favorite content types, locations, etc.
-   - Use these to build a relevant search query.
+STEP-BY-STEP PROCESS (FOLLOW THIS)
+1. Read the user info and think about what they like:
+   - topics (games, fashion, fitness, art, etc.)
+   - fandoms (Marvel, anime, K-pop, etc.)
+   - style (aesthetic, cozy, competitive, cinematic, etc.)
+   - content type (reels, tutorials, highlights, wallpapers, memes, etc.)
 
-2. Check the search history.
-   - Treat every line under “Search history:” as a past query.
-   - Your NEW query must NOT:
-     - Be exactly the same as any past query.
-     - Be almost the same (same main keywords in the same order).
-   - If your idea is too similar, CHANGE the wording, add new details, or choose a different angle.
+2. Look at search_history.
+   - Notice repeated keywords and phrases that have already been used.
+   - Avoid making a query that is just a small variation of the same phrase.
 
-3. Create a NEW query.
-   - Use 3–12 words.
-   - Use at least ONE specific keyword clearly related to the user’s interests.
-   - Use at least ONE word or phrase that does NOT appear in any past query.
-   - You can vary:
-     - Style (e.g., “aesthetic”, “minimalist”, “cinematic”, “vintage”)
-     - Context (e.g., “tutorial”, “outfit ideas”, “travel guide”, “workout routine”)
-     - Location (e.g., cities, countries, “at home”, “gym”, “beach”)
-   - Do not include hashtags (#). Just plain text.
+3. Create 2–3 different candidate queries IN YOUR HEAD, then choose ONE.
+   - Each candidate should:
+     - Be 3–10 words long.
+     - Be relevant to the user info.
+     - Use at least ONE new word not present in ANY search_history entry.
+   - If a candidate is too similar to any history entry (for example, it shares most of the phrase “marvel battle royale games with competitive multiplayer”), CHANGE IT:
+     - Replace several important words with synonyms.
+     - Change the focus (e.g., from “battle royale” to “co-op missions”, from “competitive multiplayer” to “ranked matches highlights”).
+     - Add a descriptive word that has never been used before.
 
-4. DO NOT:
-   - Do NOT repeat any query from search history.
-   - Do NOT output more than one query.
-   - Do NOT explain your reasoning.
-   - Do NOT add any extra text, labels, or commentary.
-   - Do NOT copy any query from the examples below; they are only examples.
+4. CHOOSE THE MOST DIFFERENT CANDIDATE.
+   - Prefer the candidate that:
+     - Has the most new words.
+     - Changes the structure of the phrase compared to search_history.
+     - Still matches the user’s interests.
 
-5. MEMORY NOTE
-   - You only know the search history that appears in the current input.
-   - When the user gives new input, treat THAT search history as the only list you must avoid.
+5. FINAL CHECK BEFORE ANSWERING:
+   - Your final query MUST:
+     - Not be identical to any item in search_history.
+     - Not be just a small edit of the same main phrase.
+     - Contain at least ONE word that does NOT appear in ANY of the search_history strings.
+
+WHAT YOU MUST NOT DO
+- Do NOT copy any query from search_history.
+- Do NOT output more than one query.
+- Do NOT explain your reasoning.
+- Do NOT mention the steps or the search history in your answer.
+- Do NOT use hashtags (#). Only plain text.
 
 OUTPUT FORMAT (VERY IMPORTANT)
-- Always respond in EXACTLY this format and nothing else:
+Always respond in EXACTLY this format and nothing else:
 
 Query: [YOUR SEARCH QUERY]
 
-- One line only.
-- No extra spaces or lines before or after.
+No extra text, no extra lines before or after.
 
 EXAMPLES
 
-Example 1
-User info:
-Loves bodybuilding, gym motivation, and high-protein meal prep. Watches a lot of fitness reels.
+(These are examples. Do NOT copy these queries exactly.)
 
-Search history:
-1) gym motivation videos
-2) bodybuilding inspiration
-3) high protein meal prep ideas
+Example 1
+User info: Loves Marvel games, online competition, and fast-paced action shooters.
+
+search_history: ['battle royale games with competitive multiplayer',
+                 'marvel battle royale games with competitive multiplayer']
 
 Assistant:
-Query: intense strength training workout routines
+Query: marvel hero shooter ranked match highlights
 
 Example 2
-User info:
-Enjoys cottagecore, nature, soft vintage aesthetics, and cozy home decor.
+User info: Likes cozy fantasy games, exploration, and relaxing gameplay.
 
-Search history:
-1) cottagecore outfits
-2) cozy room decor
-3) vintage aesthetic photography
+search_history: ['cozy fantasy village games',
+                 'relaxing exploration rpgs',
+                 'peaceful open world fantasy']
 
 Assistant:
-Query: soft cottagecore bedroom inspiration
+Query: slow paced magical farming life sim
 
 Example 3
-User info:
-Interested in streetwear fashion, sneakers, and urban photography.
+User info: Enjoys streetwear fashion, sneakers, and urban photography.
 
-Search history:
-1) streetwear outfit ideas
-2) urban fashion aesthetic
-3) sneaker collection reels
+search_history: ['streetwear outfit ideas',
+                 'urban fashion aesthetic',
+                 'sneaker collection reels']
 
 Assistant:
-Query: moody city streetwear photoshoot ideas
+Query: edgy city sneaker street style inspiration
 
 REMEMBER
-- ALWAYS generate a NEW query.
-- NEVER repeat or closely copy anything from the provided search history.
-- ALWAYS use this exact format:
+- ALWAYS make the new query clearly different from search_history.
+- ALWAYS include at least one word that does NOT appear in any history entry.
+- ALWAYS output in this exact format:
 
 Query: [YOUR SEARCH QUERY]
 """
@@ -218,10 +221,10 @@ class SocialAgent(SearchAgent):
         max_description_chars:int=100,
         min_like_interest:int=50,
         min_follow_interest:int=80,
+        min_comment_interest:int=75,
         max_follow_accounts:int=4,
-        like_comment_interest:int=75,
         break_chance:int=10,
-        comment_chance:float=0.8,
+        comment_chance:float=0.4,
         min_break_length:int=300,
         max_break_length:int=3600,
         moods:dict[str, int]={},
@@ -238,21 +241,19 @@ class SocialAgent(SearchAgent):
         self.min_like_interest = min_like_interest
         self.min_follow_interest = min_follow_interest
         self.max_follow_accounts = max_follow_accounts
-        self.like_comment_interest = like_comment_interest
+        self.min_comment_interest = min_comment_interest
         self.break_chance = max(min(break_chance, 100), 0)
         self.min_break_length = min_break_length
         self.max_break_length = max_break_length
         self.comment_chance = comment_chance
         self.post_history = []
-        self.search_history = []
         self.moods = moods
-        self._save = getattr(browser, "_save", False)
         self._mood = 0
         self._mood_keys = list(moods.keys())
         # Check if browser is a save browser
         if self._save:
             self.post_history = self.browser.get_data("post_history") or []
-            self.search_history = self.browser.get_data("search_history") or []
+
     # Randomly take a break
     def random_break(self):
         # Check if random chance is within chosen chance
@@ -351,23 +352,14 @@ class SocialAgent(SearchAgent):
         return value_dict
     # Generate search query and search on insta feed
     def feed_search(self):
-        # Message to prevent repititon
-        if len(self.search_history) > 0:
-            history = f'Your Search History [NEVER REPEAT THESE SEARCHES]: "{'", "'.join(self.search_history)}' +"\n"
-        else:
-            history = ""
+        messages = [f"User Interests: {", ".join(self.llm.interests)}"]
+
         feed_query = self.get_query(
-            messages=self.llm.interests,
-            instructions=history + FEED_QUERY_INPUT
+            messages=messages,
+            instructions=FEED_QUERY_INPUT,
+            record=True
         )
         if feed_query:
-            # Update search history and save
-            self.search_history.append(feed_query)
-            if len(self.search_history) > MAX_HISTORY_LENGTH:
-                for _ in range(len(self.search_history) - MAX_HISTORY_LENGTH):
-                    self.search_history.pop(0) # remove oldest search
-            if self._save:
-                self.browser.save_data("search_history", self.search_history)
             # Search
             self.browser.feed_search(feed_query)
     # Go through posts and process through LLM
@@ -429,7 +421,7 @@ class SocialAgent(SearchAgent):
                             time.sleep(1 * random.random())
                         # Comment based on random chance (and like interest)
                         comment_chance = random.random()
-                        if comment_chance > 1 - self.comment_chance and interest > self.like_comment_interest:
+                        if comment_chance > 1 - self.comment_chance and interest > self.min_comment_interest:
                             # Check for mood
                             if len(self._mood_keys) > 0:
                                 # Get mood

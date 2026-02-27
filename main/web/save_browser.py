@@ -28,8 +28,12 @@ class SaveBrowser(Browser):
             with open(SAVE_PATH, 'rb') as f:
                 # Load data
                 self.data = pickle.load(f)
+                # Load attributes
+                if 'attributes' in self.data.keys():
+                    for attribute, value in self.data['attributes'].items():
+                        setattr(self, attribute, value)
                 # Load sessionid
-                if 'sessionid' in self.data:
+                if 'sessionid' in self.data.keys():
                     self._logged_in = Browser.login(self, sessionid=self.data['sessionid'])
                     return self._logged_in
         # Call base function, store result and return
@@ -54,6 +58,10 @@ class SaveBrowser(Browser):
     def _close(self):
         # Make sure login was successful first
         if self._logged_in:
+            # Save attributes
+            self.data["attributes"] = {
+                "cooldown_started": self.cooldown_started
+            }
             # Write save file accordingly
             if path.exists(SAVE_PATH):
                 mode = 'wb'
