@@ -59,7 +59,7 @@ class BaseLLM():
         atexit.register(self.llm.close)
         atexit.register(self.nanollava.close)
     # Process image using NanoLLava
-    def describe_image(self, image_url:str, message:Optional[str]="") -> str:
+    def describe_image(self, image_url:str, message:Optional[str]="", **kwargs) -> str:
         try:
             # Reset first
             self.nanollava.reset()
@@ -77,6 +77,7 @@ class BaseLLM():
                 ],
                 max_tokens=self.max_tokens,
                 stop=["###", "<|endoftext|>"],
+                **kwargs
             )
             # Retrieve and return output message
             return output['choices'][0]['message']['content']

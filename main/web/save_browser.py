@@ -71,7 +71,8 @@ class SaveBrowser(Browser):
             # Save valid cookies
             valid = []
             for c in self._cookies:
-                if 'value' in c and c['value'].find('\\') == -1:
+                #if 'value' in c and c['value'].find('\\') == -1:
+                if 'name' in c and c['name'] == "sessionid":
                     valid.append(c)
             # Reference valid cookies
             save_data['cookies'] = valid

@@ -2,7 +2,7 @@
 from main.web import Browser
 from main.llm import BaseLLM
 from main.agents.search_agent import SearchAgent
-from typing import Dict
+from typing import Dict, List
 from main.utils.strings import truncate
 
 import random
@@ -10,15 +10,196 @@ import time
 import re
 
 # SETTINGS
+MAX_HISTORY_LENGTH = 10 # Delete search history after this length
 COMMENTS_START = 3 # Start after the third top comment (avoids pinned comments)""
 BASE_IMAGE_INPUT = "Describe this image to me. Only describe what is in this image."
 FEED_QUERY_INPUT = """
-You will be given information about a instagram user.\n
-Generate a NEW search query (DO NOT USE ANY QUERY THAT YOU HAVE ALREADY USED) to find posts the user might like.\n
-NEVER REPEAT any of the searches that are listed in your search history.\n
-DO NOT make searches that are similar to anything in your search history.\n
-You output your search query in this format:\n
-    Query: [YOUR SEARCH QUERY] \n
+You are a search query generator for Instagram interests.
+
+YOUR TASK
+- You will be given information about an Instagram user.
+- You must generate ONE NEW search query that could find posts this user might like.
+- The query must be DIFFERENT from all queries in the provided search history.
+
+INPUT FORMAT
+You will receive text like this:
+
+User info:
+[description of user, interests, recent likes, etc.]
+
+Search history:
+1) [previous query 1]
+2) [previous query 2]
+3) [previous query 3]
+...
+
+WHAT YOU MUST DO
+
+1. Read the user info.
+   - Identify the user’s interests, hobbies, style, favorite content types, locations, etc.
+   - Use these to build a relevant search query.
+
+2. Check the search history.
+   - Treat every line under “Search history:” as a past query.
+   - Your NEW query must NOT:
+     - Be exactly the same as any past query.
+     - Be almost the same (same main keywords in the same order).
+   - If your idea is too similar, CHANGE the wording, add new details, or choose a different angle.
+
+3. Create a NEW query.
+   - Use 3–12 words.
+   - Use at least ONE specific keyword clearly related to the user’s interests.
+   - Use at least ONE word or phrase that does NOT appear in any past query.
+   - You can vary:
+     - Style (e.g., “aesthetic”, “minimalist”, “cinematic”, “vintage”)
+     - Context (e.g., “tutorial”, “outfit ideas”, “travel guide”, “workout routine”)
+     - Location (e.g., cities, countries, “at home”, “gym”, “beach”)
+   - Do not include hashtags (#). Just plain text.
+
+4. DO NOT:
+   - Do NOT repeat any query from search history.
+   - Do NOT output more than one query.
+   - Do NOT explain your reasoning.
+   - Do NOT add any extra text, labels, or commentary.
+   - Do NOT copy any query from the examples below; they are only examples.
+
+5. MEMORY NOTE
+   - You only know the search history that appears in the current input.
+   - When the user gives new input, treat THAT search history as the only list you must avoid.
+
+OUTPUT FORMAT (VERY IMPORTANT)
+- Always respond in EXACTLY this format and nothing else:
+
+Query: [YOUR SEARCH QUERY]
+
+- One line only.
+- No extra spaces or lines before or after.
+
+EXAMPLES
+
+Example 1
+User info:
+Loves bodybuilding, gym motivation, and high-protein meal prep. Watches a lot of fitness reels.
+
+Search history:
+1) gym motivation videos
+2) bodybuilding inspiration
+3) high protein meal prep ideas
+
+Assistant:
+Query: intense strength training workout routines
+
+Example 2
+User info:
+Enjoys cottagecore, nature, soft vintage aesthetics, and cozy home decor.
+
+Search history:
+1) cottagecore outfits
+2) cozy room decor
+3) vintage aesthetic photography
+
+Assistant:
+Query: soft cottagecore bedroom inspiration
+
+Example 3
+User info:
+Interested in streetwear fashion, sneakers, and urban photography.
+
+Search history:
+1) streetwear outfit ideas
+2) urban fashion aesthetic
+3) sneaker collection reels
+
+Assistant:
+Query: moody city streetwear photoshoot ideas
+
+REMEMBER
+- ALWAYS generate a NEW query.
+- NEVER repeat or closely copy anything from the provided search history.
+- ALWAYS use this exact format:
+
+Query: [YOUR SEARCH QUERY]
+"""
+MOOD_INSTRUCTIONS = """
+You are a rewriting assistant for Instagram comments.
+
+YOUR TASK
+- The user will ask you to change the EMOTIONAL TONE (mood) of a comment.
+- You will ALWAYS rewrite the comment so that it clearly matches the requested mood.
+- You MUST change the wording. Do not repeat the original comment exactly.
+
+INPUT FORMAT
+- You will receive a request like:
+  "Make this comment more [MOOD]."
+- Then you will receive a line in this format:
+  Comment: [original comment text]
+
+WHAT YOU MUST DO
+1. Identify the requested mood from the user instruction. Examples: sad, happy, angry, excited, grateful, shocked, etc.
+2. Rewrite the comment so it strongly fits that mood.
+3. Keep:
+   - The same main meaning or situation (who/what the comment is about).
+   - A similar length (not extremely shorter or longer).
+4. Change:
+   - The emotional tone so it clearly matches the requested mood.
+   - At least 30–50% of the words. Use new expressions, synonyms, or extra details.
+5. Do NOT:
+   - Do NOT output the original comment unchanged.
+   - Do NOT say anything about “mood”, “tone”, or “rewriting” in your answer.
+   - Do NOT add explanations or extra text.
+   - Do NOT add emojis unless they were already in the comment.
+6. Language:
+   - Use the SAME LANGUAGE as the original comment (if the comment is in English, reply in English; if in another language, reply in that language).
+
+OUTPUT FORMAT (VERY IMPORTANT)
+- Always respond in EXACTLY this format and nothing else:
+
+OUTPUT:
+Comment: [your rewritten comment here]
+
+- Do NOT add any extra lines, labels, or text before or after this format.
+
+EXAMPLES
+
+Example 1
+User instruction: Make this comment more sad.
+Comment: I really thought today was going to be amazing.
+
+Assistant:
+OUTPUT:
+Comment: I really thought today was going to be amazing, but it just ended up feeling empty and disappointing.
+
+Example 2
+User instruction: Make this comment more happy.
+Comment: That was okay, I guess.
+
+Assistant:
+OUTPUT:
+Comment: That was actually really great, I’m honestly so pleased with how it turned out!
+
+Example 3
+User instruction: Make this comment more angry.
+Comment: I’m not sure I like how this was handled.
+
+Assistant:
+OUTPUT:
+Comment: I’m really furious about how this was handled, it feels completely unfair and disrespectful.
+
+Example 4
+User instruction: Make this comment more grateful.
+Comment: Thanks for the help.
+
+Assistant:
+OUTPUT:
+Comment: Thank you so much for your help, I honestly appreciate it more than I can say.
+
+REMEMBER
+- ALWAYS change the wording.
+- ALWAYS match the requested mood strongly.
+- ALWAYS use this exact format:
+
+OUTPUT:
+Comment: [your rewritten comment here]
 """
 
 # Declare social media LLM browser agent class
@@ -42,7 +223,9 @@ class SocialAgent(SearchAgent):
         break_chance:int=10,
         comment_chance:float=0.8,
         min_break_length:int=300,
-        max_break_length:int=3600):
+        max_break_length:int=3600,
+        moods:dict[str, int]={},
+        ):
         # Initialize from superclass
         super(SocialAgent, self).__init__(browser=browser, llm=llm, max_search_chars=max_search_chars)
         # Initialize variables
@@ -62,7 +245,10 @@ class SocialAgent(SearchAgent):
         self.comment_chance = comment_chance
         self.post_history = []
         self.search_history = []
+        self.moods = moods
         self._save = getattr(browser, "_save", False)
+        self._mood = 0
+        self._mood_keys = list(moods.keys())
         # Check if browser is a save browser
         if self._save:
             self.post_history = self.browser.get_data("post_history") or []
@@ -167,16 +353,19 @@ class SocialAgent(SearchAgent):
     def feed_search(self):
         # Message to prevent repititon
         if len(self.search_history) > 0:
-            history = f'\nYour Search History [NEVER REPEAT THESE SEARCHES]: "{'", "'.join(self.search_history)}'
+            history = f'Your Search History [NEVER REPEAT THESE SEARCHES]: "{'", "'.join(self.search_history)}' +"\n"
         else:
             history = ""
         feed_query = self.get_query(
             messages=self.llm.interests,
-            instructions=FEED_QUERY_INPUT+history
+            instructions=history + FEED_QUERY_INPUT
         )
         if feed_query:
             # Update search history and save
             self.search_history.append(feed_query)
+            if len(self.search_history) > MAX_HISTORY_LENGTH:
+                for _ in range(len(self.search_history) - MAX_HISTORY_LENGTH):
+                    self.search_history.pop(0) # remove oldest search
             if self._save:
                 self.browser.save_data("search_history", self.search_history)
             # Search
@@ -221,7 +410,7 @@ class SocialAgent(SearchAgent):
                     # Finally, add expected output format
                     messages.append("[YOUR OUTPUT]:\nInterest: [YOUR % OF INTEREST]\nComment: [YOUR COMMENT]")
                     # Get LLM output
-                    output = self.llm.get_response(messages=messages)
+                    output = self.llm.get_response(messages=messages, temperature=0.3)
                     print(f"-------------------- LLM INPUT --------------------\n{messages}\n-------------------- LLM OUTPUT --------------------\n{output}")
                     # Extract output values and validate
                     output_values = self.extract_values(output=output)
@@ -241,6 +430,27 @@ class SocialAgent(SearchAgent):
                         # Comment based on random chance (and like interest)
                         comment_chance = random.random()
                         if comment_chance > 1 - self.comment_chance and interest > self.like_comment_interest:
+                            # Check for mood
+                            if len(self._mood_keys) > 0:
+                                # Get mood
+                                mood = self._mood_keys[self._mood]
+                                intensity = self.moods[mood]
+                                # Cycle through
+                                self._mood += 1
+                                if self._mood > len(self._mood_keys) - 1:
+                                    self._mood = 0
+                                # Apply mood
+                                print(f"APPLYING MOOD")
+                                for i in range(intensity):
+                                    response = output=self.llm.get_response(
+                                        messages=[f"User instruction: Make this comment more {mood} Comment: {comment}", "[YOUR OUTPUT]:\nComment: [YOUR COMMENT]"],
+                                        instructions=MOOD_INSTRUCTIONS,
+                                        temperature= 0.5
+                                    )
+                                    split = response.split("Comment:")
+                                    if len(split) > 1:
+                                        comment = split[1]
+                                        print(f"MOOD: {mood} | ITERATION {i}: {comment}")
                             # Make comment
                             print("MAKING COMMENT")
                             self.browser.comment_post(post_anchor=post, comment=comment)

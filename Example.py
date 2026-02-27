@@ -71,6 +71,12 @@ if loginSuccess:
     GOALS = ["Grow social media following", "Fit in with other comments", "Get people to view your profile"]
     GRAMMAR_INSTRUCTIONS = "You base your grammar off of user comments. You are informal."
     SLANG = ["*lol: Laughing out loud",] # The slang is marked by *, followed by the definition
+    MOODS = { # Optional moods-intensity the LLM will cycle through for different comments
+        "default": 0,
+        "happy": 1,
+        "angry": 2,
+        "sad": 1
+    } 
 
     # Create LLM
     GAMER_LLM = SocialMediaLLM(
@@ -82,12 +88,17 @@ if loginSuccess:
         goals=GOALS,
         grammar_instructions=GRAMMAR_INSTRUCTIONS,
         sample_responses=SAMPLES,
-        slang=SLANG
+        slang=SLANG,
         )
     print("LLM created")
 
     # Create social browser agent
-    agent = SocialAgent(browser=browser, llm=GAMER_LLM, n_posts=5)
+    agent = SocialAgent(
+        browser=browser, 
+        llm=GAMER_LLM, 
+        n_posts=5,
+        moods=MOODS,
+        )
     print("Agent created")
 
     # Run 20 processes

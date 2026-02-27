@@ -213,6 +213,14 @@ class Browser:
     # Search given query on feed
     def feed_search(self, query:str):
         self.driver.get(FEED_URL + f"search/keyword/?q={url_parse.quote(query)}")
+        # Check if failed to load
+        try:
+            reload_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Reload Page']")))
+            # Reload and wait
+            reload_button.click()
+            time.sleep(1)
+        except TimeoutException as e:
+            pass
             
     # Scroll through feed, return array of posts
     def feed_step(self, post_count:int=6) -> List[WebElement]:

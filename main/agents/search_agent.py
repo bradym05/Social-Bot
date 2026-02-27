@@ -95,7 +95,8 @@ class SearchAgent(BaseAgent):
         # Generate query from post information
         search_query = self.llm.get_response(
             instructions=instructions,
-            messages=query_messages
+            messages=query_messages,
+            temperature=0.3
         )
         # Check if search query is formatted correctly
         if search_query.lower().find("query:") > -1:
