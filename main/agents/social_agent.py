@@ -304,22 +304,22 @@ class SocialAgent(SearchAgent):
         description to include in the text model's
         input. Defaults to 100.
     min_like_interest : int | None
-        Minimum interest percentage required to like
-        a post. Defaults to 50.
+        Interest percentage from 0-100. Minimum interest 
+        required to like a post. Defaults to 50.
     min_follow_interest : int | None
-        Minimum interest required to follow the author's
-        followers. Defaults to 80.
+        Interest percentage from 0-100. Minimum interest
+        required to follow the author's followers. Defaults to 80.
     min_comment_interest : int | None
-        Minimum interest required to comment on a post.
-        Defaults to 75.
+        Interest percentage from 0-100. Minimum interest
+        required to comment on a post. Defaults to 75.
     max_follow_accounts : int | None
-        Maximum number of accounts to follow when 
+        Maximum number of accounts to follow when
         min_follow_interest is met. Keep this number 
         low to avoid rate limiting. Defaults to 4.
-    comment_chance : float : None
-        Float from 0 - 1 representing the chance that
+    comment_chance : int : None
+        Percentage from 0-100 representing the chance that
         a comment will be posted when min_comment_interest
-        is met. Defaults to 0.4.
+        is met. Defaults to 40.
     moods : Dict[str, int] | None
         Dictionary representing possible moods and their
         intensities. This will be cycled through on each
@@ -343,7 +343,7 @@ class SocialAgent(SearchAgent):
         min_follow_interest:int=80,
         min_comment_interest:int=75,
         max_follow_accounts:int=4,
-        comment_chance:float=0.4,
+        comment_chance:int=40,
         moods:Dict[str, int]={},
         break_chance:int=10,
         min_break_length:int=300,
@@ -358,14 +358,14 @@ class SocialAgent(SearchAgent):
         self.max_total_comment_chars = max_total_comment_chars
         self.max_caption_chars = max_caption_chars
         self.max_description_chars = max_description_chars
-        self.min_like_interest = min_like_interest
-        self.min_follow_interest = min_follow_interest
-        self.max_follow_accounts = max_follow_accounts
-        self.min_comment_interest = min_comment_interest
+        self.min_like_interest = max(min(min_like_interest, 100), 0)
+        self.min_follow_interest = max(min(min_follow_interest, 100), 0)
+        self.min_comment_interest = max(min(min_comment_interest, 100), 0)
         self.break_chance = max(min(break_chance, 100), 0)
+        self.comment_chance = max(min(comment_chance, 100), 0)
+        self.max_follow_accounts = max_follow_accounts
         self.min_break_length = min_break_length
         self.max_break_length = max_break_length
-        self.comment_chance = comment_chance
         self.post_history = []
         self.moods = moods
         self._mood = 0
@@ -548,9 +548,9 @@ class SocialAgent(SearchAgent):
                             self.browser.like_post(post_anchor=post)
                             # Wait before proceeding
                             time.sleep(1 * random.random())
-                        # Comment based on random chance (and like interest)
+                        # Comment based on random chance (and interest)
                         comment_chance = random.random()
-                        if comment_chance > 1 - self.comment_chance and interest > self.min_comment_interest:
+                        if comment_chance > 1 - (self.comment_chance/100) and interest > self.min_comment_interest:
                             # Check for mood
                             if len(self._mood_keys) > 0:
                                 # Get mood
