@@ -91,7 +91,6 @@ if loginSuccess:
     GAMER_LLM = SocialMediaLLM(
         role="gaming content creator",
         name="game_hub",
-        platform="Instagram",
         platform_usage="upload entertaining gaming clips daily",
         interests=INTERESTS,
         goals=GOALS,
