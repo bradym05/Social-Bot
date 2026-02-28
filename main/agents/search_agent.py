@@ -48,6 +48,20 @@ Here are some examples:
 
 # Declare search browser agent class
 class SearchAgent(BaseAgent):
+    """
+    Browser and LLM manager for searching.
+    
+    Attributes
+    ----------
+    browser : Browser
+        Browser object.
+    llm : BaseLLM
+        LLM object.
+    max_search_chars : int | None
+        The maximum total length of the results returned
+        from a search. Defaults to 400.
+    
+    """
     # Initialize object
     def __init__(
         self, 

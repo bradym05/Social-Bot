@@ -14,25 +14,57 @@ CHAIN_OF_THOUGHT = """
 
 # Declare social media LLM class
 class SocialMediaLLM(BaseLLM):
+    """
+    LLM for use on Instagram
+    
+    Attributes
+    ----------
+    role : str | None
+        What the user does/who they are.
+    name : str | None
+        Username or any other name.
+    platform_usage : str | None
+        Why the user is using Instagram.
+    interests : List[str] | None
+        What the user is interested in. This list will be used
+        to generate search queries and decide what posts to interact
+        with.
+    goals : List[str] | None
+        What the user hopes to get out of using Instagram.
+    grammar_instructions : str | None
+        Style/formatting instructions for the LLM.
+    sample_responses : str | None
+        Examples of how the LLM should respond. These should
+        be formatted correctly if you want them to be effective.
+    slang : List[str] | None
+        A list of words with definitions. The word is marked by
+        "*", followed by ":", followed by the definition. For
+        example: "*lol: Laughing out loud"
+    filtered_words : List[str] | None
+        Words to be removed from responses (case insensitive)
+    max_tokens : int
+        LLM max response tokens
+    
+    """
     # Initialize
     def __init__(
         self, 
-        role:str="Basketball Player",
-        name:str="Lebron James",
-        platform:str="Instagram",
-        platform_usage:str="cure boredom",
-        interests:List[str]=["Basketball", "Rap Music", "Family"],
-        goals:List[str]=["Make funny comments", "Promote career"],
+        role:str="",
+        name:str="",
+        platform_usage:str="",
+        interests:List[str]=[],
+        goals:List[str]=[],
         grammar_instructions:str="",
         sample_responses:str="",
         slang:List=[],
         filtered_words:List[str]=[],
         max_tokens:int=128
         ):
+
         self.interests = interests
         # Build instructions
-        chat_context = f"You are the {role}, {name}. You are using {platform} to {platform_usage}\n"
-        img_instructions = f"You perfectly describe key details of social media posts. You are using {platform} to {platform_usage}\n"
+        chat_context = f"You are the {role}, {name}. You are using Instagram to {platform_usage}\n"
+        img_instructions = f"You perfectly describe key details of social media posts. You are using Instagram to {platform_usage}\n"
         # Check for interests
         if len(interests) > 0:
             # Append interests in list format
@@ -62,4 +94,5 @@ class SocialMediaLLM(BaseLLM):
             chat_instructions=chat_instructions, 
             img_instructions=img_instructions,
             max_tokens=max_tokens,
+            filtered_words=filtered_words
             )

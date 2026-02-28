@@ -273,6 +273,60 @@ Comment: [your rewritten comment here]
 
 # Declare social media LLM browser agent class
 class SocialAgent(SearchAgent):
+    """
+    Browser and LLM manager for Instagram.
+    
+    Attributes
+    ----------
+    browser : Browser
+        Browser object.
+    llm : BaseLLM
+        LLM object.
+    max_search_chars : int | None
+        The maximum total length of the results returned
+        from a search. Defaults to 150.
+    n_posts : int | None
+        Number of posts per one process. Defaults to 5.
+    min_comments : int | None
+        The minimum number of comments for any comments
+        to be included in LLM input. Defaults to 1.
+    max_comments : int | None
+        The maximum number of comments to include in
+        LLM input. Defaults to 10
+    max_total_comment_chars : int | None
+        The maximum total combined length of comments 
+        to include in input. Defaults to 300.
+    max_caption_chars : int | None
+        The maximum length of the post's caption to
+        include in input. Defaults to 150.
+    max_description_chars : int | None
+        The maximum length of the image model's image
+        description to include in the text model's
+        input. Defaults to 100.
+    min_like_interest : int | None
+        Minimum interest percentage required to like
+        a post. Defaults to 50.
+    min_follow_interest : int | None
+        Minimum interest required to follow the author's
+        followers. Defaults to 80.
+    min_comment_interest : int | None
+        Minimum interest required to comment on a post.
+        Defaults to 75.
+    max_follow_accounts : int | None
+        Maximum number of accounts to follow when 
+        min_follow_interest is met. Keep this number 
+        low to avoid rate limiting. Defaults to 4.
+    comment_chance : float : None
+        Float from 0 - 1 representing the chance that
+        a comment will be posted when min_comment_interest
+        is met. Defaults to 0.4.
+    moods : Dict[str, int] | None
+        Dictionary representing possible moods and their
+        intensities. This will be cycled through on each
+        comment. The mood will be applied to the original
+        comment and continue to be reapplied until the
+        intensity value is reached.
+    """
     # Initialize object
     def __init__(
         self, 
@@ -289,11 +343,11 @@ class SocialAgent(SearchAgent):
         min_follow_interest:int=80,
         min_comment_interest:int=75,
         max_follow_accounts:int=4,
-        break_chance:int=10,
         comment_chance:float=0.4,
+        moods:Dict[str, int]={},
+        break_chance:int=10,
         min_break_length:int=300,
         max_break_length:int=3600,
-        moods:dict[str, int]={},
         ):
         # Initialize from superclass
         super(SocialAgent, self).__init__(browser=browser, llm=llm, max_search_chars=max_search_chars)

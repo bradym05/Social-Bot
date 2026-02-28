@@ -11,6 +11,18 @@ LOAD_KEYS = []
 
 # Declare save browser subclass
 class SaveBrowser(Browser):
+    """
+    Browser which saves and loads data.
+
+    Attributes
+    ----------
+    username : str
+        Your instagram account username.
+    timeout_exit : bool
+        Automatically exit when an unhandled TimeoutException occurs.
+    timeout_callback : Optional[callable]
+        Callback when an unhandled TimeoutException occurs.
+    """
     # Initialize object
     def __init__(self, *args, **kwargs):
         # Initialize from superclass

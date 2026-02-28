@@ -29,15 +29,30 @@ CONTEXT_LENGTH = 2048
 
 # Base LLM class
 class BaseLLM():
+    """
+    Basic LLM
+    
+    Attributes
+    ----------
+    chat_context : str | None
+        Optional context that will be given before instructions.
+    chat_instructions : str | None
+        Instructions to be sent as system prompt.
+    img_instructions : str | None
+        Image specific instructions.
+    filtered_words : List[str] | None
+        Words to be removed from responses (case insensitive)
+    
+    """
     # Initialize object
     def __init__(
         self, 
         chat_context:str="",
         chat_instructions:str="", 
         img_instructions:str="", 
+        filtered_words:List[str]=[],
         max_tokens:int=128, 
         cuda:bool=True,
-        filtered_words:List[str]=[]
         ):
         # Setup main chat model
         self.llm = Llama(

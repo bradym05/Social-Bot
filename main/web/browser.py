@@ -79,6 +79,19 @@ class PostInfo:
 
 # Declare browser class
 class Browser:
+    """
+    Browser with built in functionality for
+    Instagram.
+
+    Attributes
+    ----------
+    username : str
+        Your instagram account username.
+    timeout_exit : bool
+        Automatically exit when an unhandled TimeoutException occurs.
+    timeout_callback : Optional[callable]
+        Callback when an unhandled TimeoutException occurs.
+    """
     # Initialize object
     def __init__(
         self,
@@ -86,18 +99,7 @@ class Browser:
         timeout_exit:bool=True,
         timeout_callback:Optional[callable]=False
         ):
-        """
-        Create a new browser object.
 
-        Parameters
-        ----------
-        username : str
-            Your instagram account username.
-        timeout_exit : bool
-            Automatically exit when an unhandled TimeoutException occurs.
-        timeout_callback : Optional[callable]
-            Callback when an unhandled TimeoutException occurs.
-        """
         # Initialize variables
         self.driver = no_indicators()
         self.driver.delete_all_cookies()
@@ -208,6 +210,19 @@ class Browser:
 
     # Search the web for the given query, returns top sites
     def search_web(self, query:str) -> List[str]:
+        """
+        Search DuckDuckGo for the given query and get the results.
+        
+        Parameters
+        ----------
+        query : str
+            The query to search for on DuckDuckGo
+
+        Returns
+        -------
+        List[str]
+            A list of each result's summary.
+        """
         final_results = []
         # Validate query
         if len(query) > 0:
@@ -257,6 +272,15 @@ class Browser:
     
     # Search given query on feed
     def feed_search(self, query:str):
+        """
+        Searches the instagram explore page for the given query
+        
+        Parameters
+        ----------
+        query : str
+            The query to search for on instagram explore
+
+        """
         self.driver.get(FEED_URL + f"search/keyword/?q={url_parse.quote(query)}")
         # Check if failed to load
         try:
@@ -269,6 +293,20 @@ class Browser:
             
     # Scroll through feed, return array of posts
     def feed_step(self, post_count:int=6) -> List[WebElement]:
+        """
+        Opens the explore page, or scrolls down if already open, and
+        returns a list of each post anchor in random order.
+        
+        Parameters
+        ----------
+        post_count : int
+            The number of posts to include. Defaults to 6.
+
+        Returns
+        -------
+        List[WebElement]
+            A list of post anchors in random order.
+        """
         # Check current page
         if str(self.driver.current_url).find(FEED_URL) > -1:
             # Scroll down
@@ -300,6 +338,20 @@ class Browser:
     
     # Open the given post
     def open_post(self, post_anchor:WebElement, new_tab:bool=True):
+        """
+        Opens the given post if it isn't already open. If new_tab is
+        set to true, the post anchor's href will be opened in a new tab.
+        Otherwise clicks the post anchor opening in a popup.
+        
+        Parameters
+        ----------
+        post_anchor : WebElement
+            The post anchor to click on.
+        new_tab : bool | None
+            Bool to indicate if the post should open in a new tab.
+            Defaults to True.
+
+        """
         # Get currently opened post
         current_post = getattr(self, "_current_post", False)
         # Check if open already
@@ -330,18 +382,35 @@ class Browser:
             self._post_url = str(post_url)
 
     # Close current post
-    def close_post(self):
+    def close_post(self) -> bool:
+        """
+        Close the current tab if post opened in a new tab,
+        otherwise find and click the close button.
+        
+        Returns
+        -------
+        bool
+            Indicates whether the post closed successfully or not
+        """
         # Check if post is open
         post = getattr(self, "_current_post", False)
         if getattr(self, "_new_tab", False):
             self.driver.close()
             self.driver.switch_to.window(self.driver.window_handles[0])
         elif post:
-            pass
+            # Get close button
+            try:
+                close_button = WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, "//button[text()='Close']")))
+            except TimeoutException as e:
+                return False
+            # Click close button
+            self.to_element(close_button)
+            close_button.click()
         # Reset variables
         self._current_post = None
         self._new_tab = None
         self._post_url = None
+        return True
 
     # Get post image
     def get_post_image(self, post_anchor:WebElement) -> WebElement | None:
@@ -368,6 +437,9 @@ class Browser:
         
     # Scroll to the end of a slides post
     def scroll_post(self, post_anchor:WebElement):
+        """
+        Scrolls through slides of a post until the last slide.
+        """
         # Open post
         self.open_post(post_anchor=post_anchor)
         # Find scroll button
@@ -442,6 +514,14 @@ class Browser:
 
     # Returns true if cooldown started
     def is_on_cooldown(self) -> bool:
+        """
+        Checks if a follow cooldown was detected in the last 24 hours.
+
+        Returns
+        -------
+        bool
+            Indicates if on cooldown
+        """
         # Check if started
         if self.cooldown_started:
             # Disable cooldown after set length
@@ -453,6 +533,32 @@ class Browser:
 
     # Presses the given number of follow buttons
     def click_follow_buttons(self, header:str, follow:bool, count:int=1, max_retries:int=10) -> int:
+        """
+        Opens the followers/following tab on the current profile and follows 
+        the given number of accounts. The profile must already be open.
+        
+        Parameters
+        ----------
+        header : str
+            The name of the button on the profile to click. Also the header 
+            that appears when the tab opens (followers, following). This is 
+            used to wait until the dialog loads before proceeding, because
+            it switches at first.
+        follow : bool
+            If true, search for and click buttons to follow accounts. If false,
+            search for and click buttons to unfollow accounts.
+        count : int | None
+            How many accounts to follow/unfollow. Defaults to 1
+        max_retries : int | None
+            How many times to retry when getting the given count. If max
+            retries is exceeded, the buttons that did load will still be
+            clicked. Defaults to 10.
+        
+        Returns
+        -------
+        int
+            The number of accounts followed/unfollowed
+        """
         # Don't proceed if cooldown started
         if self.is_on_cooldown(): return 0
         clicked = 0
@@ -530,6 +636,19 @@ class Browser:
 
     # Follow people who follow the currently opened profile
     def follow_profile_followers(self, post_anchor:WebElement, count:int=1):
+        """
+        Opens the post anchor's author's profile and follows people that
+        follow them. This method checks if a follow cooldown is currently
+        in place before performing any actions.
+        
+        Parameters
+        ----------
+        post_anchor : WebElement
+            The post anchor
+        count : int | None
+            How many people to follow. Defaults to 1.
+
+        """
         if self.is_on_cooldown(): print("CANNOT FOLLOW ON COOLDOWN"); return
         # Attempt to open profile
         self.open_profile(post_anchor=post_anchor)
@@ -540,6 +659,19 @@ class Browser:
 
     # Unfollow given number of accounts
     def unfollow(self, count:int=1):
+        """
+        Opens the the user account and unfollows people they are following. 
+        This method checks if a follow cooldown is currently in place before 
+        performing any actions.
+        
+        Parameters
+        ----------
+        post_anchor : WebElement
+            The post anchor
+        count : int | None
+            How many people to unfollow. Defaults to 1.
+
+        """
         if self.is_on_cooldown():  print("CANNOT UNFOLLOW ON COOLDOWN"); return
         # Open followers page
         self.driver.get(f"{HOME_URL}{self.username}/")
