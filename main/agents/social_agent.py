@@ -320,6 +320,10 @@ class SocialAgent(SearchAgent):
         Percentage from 0-100 representing the chance that
         a comment will be posted when min_comment_interest
         is met. Defaults to 40.
+    follow_chance : int : None
+        Percentage from 0-100 representing the chance that
+        the LLM will follow a post's author's followers
+        when interest is >= min_follow_interest
     moods : Dict[str, int] | None
         Dictionary representing possible moods and their
         intensities. This will be cycled through on each
@@ -344,6 +348,7 @@ class SocialAgent(SearchAgent):
         min_comment_interest:int=75,
         max_follow_accounts:int=4,
         comment_chance:int=40,
+        follow_chance:int=40,
         moods:Dict[str, int]={},
         break_chance:int=10,
         min_break_length:int=300,
@@ -363,6 +368,7 @@ class SocialAgent(SearchAgent):
         self.min_comment_interest = max(min(min_comment_interest, 100), 0)
         self.break_chance = max(min(break_chance, 100), 0)
         self.comment_chance = max(min(comment_chance, 100), 0)
+        self.follow_chance = follow_chance
         self.max_follow_accounts = max_follow_accounts
         self.min_break_length = min_break_length
         self.max_break_length = max_break_length
@@ -575,8 +581,9 @@ class SocialAgent(SearchAgent):
                             # Make comment
                             print("MAKING COMMENT")
                             self.browser.comment_post(post_anchor=post, comment=comment)
-                        # Follow account if interest is atleast min
-                        if interest >= self.min_follow_interest:
+                        # Follow accounts based on random chance, and if interest is atleast min
+                        follow_chance = random.random()
+                        if follow_chance > 1 - (self.follow_chance/100) and interest >= self.min_follow_interest:
                             # Follow
                             print("FOLLOWING ACCOUNT FOLLOWERS")
                             self.browser.follow_profile_followers(post_anchor=post, count=random.randint(1, self.max_follow_accounts))
