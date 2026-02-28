@@ -26,6 +26,7 @@ class SocialMediaLLM(BaseLLM):
         grammar_instructions:str="",
         sample_responses:str="",
         slang:List=[],
+        filtered_words:List[str]=[],
         max_tokens:int=128
         ):
         self.interests = interests

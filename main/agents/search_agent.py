@@ -99,6 +99,7 @@ class SearchAgent(BaseAgent):
         # Prevent repititon if search history is enabled
         if record and len(self.search_history) > 0:
             query_messages.append(f'Search History: "{'", "'.join(self.search_history)}' +"\n")
+
         query_messages.append("[YOUR OUTPUT]:\nQuery: [YOUR SEARCH QUERY]")
         # Generate query from post information
         search_query = self.llm.get_response(

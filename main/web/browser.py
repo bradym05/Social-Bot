@@ -440,16 +440,21 @@ class Browser:
                 # Wait after commenting
                 time.sleep(2 + random.random())
 
-    # Presses the given number of follow buttons
-    def click_follow_buttons(self, header:str, follow:bool, count:int=1, max_retries:int=10) -> int:
-        # Don't proceed if cooldown started
+    # Returns true if cooldown started
+    def is_on_cooldown(self) -> bool:
+        # Check if started
         if self.cooldown_started:
-            print("CANNOT FOLLOW ON COOLDOWN")
             # Disable cooldown after set length
             if time.time() - self.cooldown_started >= COOLDOWN_LENGTH:
                 self.cooldown_started = False
             else:
-                return 0
+                return True
+        return False
+
+    # Presses the given number of follow buttons
+    def click_follow_buttons(self, header:str, follow:bool, count:int=1, max_retries:int=10) -> int:
+        # Don't proceed if cooldown started
+        if self.is_on_cooldown(): return 0
         clicked = 0
         all_links: List[WebElement] = self.driver.find_elements(By.CSS_SELECTOR, "a[role='link']")
         followers_link = None
@@ -525,6 +530,7 @@ class Browser:
 
     # Follow people who follow the currently opened profile
     def follow_profile_followers(self, post_anchor:WebElement, count:int=1):
+        if self.is_on_cooldown(): print("CANNOT FOLLOW ON COOLDOWN"); return
         # Attempt to open profile
         self.open_profile(post_anchor=post_anchor)
         if getattr(self, "_profile_open", False):
@@ -534,6 +540,7 @@ class Browser:
 
     # Unfollow given number of accounts
     def unfollow(self, count:int=1):
+        if self.is_on_cooldown():  print("CANNOT UNFOLLOW ON COOLDOWN"); return
         # Open followers page
         self.driver.get(f"{HOME_URL}{self.username}/")
         # Unfollow

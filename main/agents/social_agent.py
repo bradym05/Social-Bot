@@ -13,115 +13,181 @@ import re
 COMMENTS_START = 3 # Start after the third top comment (avoids pinned comments)""
 BASE_IMAGE_INPUT = "Describe this image to me. Only describe what is in this image."
 FEED_QUERY_INPUT = """
-You are a search query generator for Instagram interests.
+You are an assistant that generates SHORT, NATURAL Instagram search queries.
 
 GOAL
-- You will be given information about an Instagram user.
-- You will also be given a search history: a list of past queries.
-- You must generate ONE NEW search query that the user might like.
-- The new query must be clearly different from every query in the search history.
+- You will be given:
+  - information about an Instagram user
+  - a search history: a list of past queries
+- Your job is to generate ONE new search query the user might actually type into Instagram.
+- The new query must:
+  - be short and natural
+  - focus on ONE interest at a time
+  - preferably use a DIFFERENT interest than the ones already used in Search History
 
 INPUT FORMAT
 You will receive something like:
 
-User info: [description of user, likes, interests, etc.]
+User Interests: [description of user, likes, interests, etc.]
 
-search_history: ['first query here', 'second query here', 'third query here']
+Search History: ['first query here', 'second query here', 'third query here']
 
-IMPORTANT RULES ABOUT SEARCH HISTORY
-- Treat every string inside search_history as a past query.
-- You MUST avoid repeating them.
-- Your new query must NOT:
-  - Be exactly the same as any query in search_history.
-  - Use the same main phrase in the same order.
-- Always include AT LEAST ONE word that does NOT appear in ANY of the queries in search_history.
+--------------------------------
+QUERY STYLE (VERY IMPORTANT)
+--------------------------------
+1. LENGTH
+- Use 1 to 3 words.
+- Aim for 2 words when possible.
+- Examples of lengths:
+  - 1 word: "valorant"
+  - 2 words: "marvel edits"
+  - 3 words: "gym workout motivation"
 
-STEP-BY-STEP PROCESS (FOLLOW THIS)
-1. Read the user info and think about what they like:
-   - topics (games, fashion, fitness, art, etc.)
-   - fandoms (Marvel, anime, K-pop, etc.)
-   - style (aesthetic, cozy, competitive, cinematic, etc.)
-   - content type (reels, tutorials, highlights, wallpapers, memes, etc.)
+2. NATURAL INSTAGRAM SEARCHES
+- The query should look like something a real person would type in the Instagram search bar.
+- It should be a few strong keywords, NOT a sentence.
 
-2. Look at search_history.
-   - Notice repeated keywords and phrases that have already been used.
-   - Avoid making a query that is just a small variation of the same phrase.
+DO:
+- Focus on ONE main topic/interest:
+  - a game (e.g., valorant, apex, cod)
+  - a show/fandom (e.g., marvel, anime, kdrama)
+  - a hobby (e.g., gym, skincare, photography)
+  - an aesthetic (e.g., streetwear, cottagecore)
+- Optionally add ONE extra word for type or style:
+  - content type: clips, edits, memes, highlights, outfits, art, fanart, cosplay, wallpapers, tutorial
+  - vibe/style: aesthetic, inspo, montage, memes, motivation
 
-3. Create 2–3 different candidate queries IN YOUR HEAD, then choose ONE.
-   - Each candidate should:
-     - Be 3–10 words long.
-     - Be relevant to the user info.
-     - Use at least ONE new word not present in ANY search_history entry.
-   - If a candidate is too similar to any history entry (for example, it shares most of the phrase “marvel battle royale games with competitive multiplayer”), CHANGE IT:
-     - Replace several important words with synonyms.
-     - Change the focus (e.g., from “battle royale” to “co-op missions”, from “competitive multiplayer” to “ranked matches highlights”).
-     - Add a descriptive word that has never been used before.
+DO NOT:
+- Do NOT write long phrases like:
+  - "marvel rivals dark mode valorant game mods with competitive multiplayer"
+- Do NOT use connecting phrases:
+  - "with", "and", "for", "about", "that have", "which have"
+- Do NOT include multiple unrelated main topics in one query:
+  - Bad: "valorant apex marvel clips"
+  - Good: "valorant clips" OR "apex clips" OR "marvel edits"
+- Do NOT write full sentences.
 
-4. CHOOSE THE MOST DIFFERENT CANDIDATE.
-   - Prefer the candidate that:
-     - Has the most new words.
-     - Changes the structure of the phrase compared to search_history.
-     - Still matches the user’s interests.
+--------------------------------
+USING THE USER’S INTERESTS
+--------------------------------
+1. From the User info, identify MULTIPLE possible interests/topics:
+   - games, shows, fandoms, sports, hobbies, aesthetics, etc.
+   - Example interests: [valorant, apex, overwatch, marvel, anime, gym, streetwear]
 
-5. FINAL CHECK BEFORE ANSWERING:
-   - Your final query MUST:
-     - Not be identical to any item in search_history.
-     - Not be just a small edit of the same main phrase.
-     - Contain at least ONE word that does NOT appear in ANY of the search_history strings.
+2. Treat each interest as a possible MAIN TOPIC word for a query.
 
+--------------------------------
+AVOIDING LOOPS WITH SEARCH HISTORY
+--------------------------------
+- Search History is a list of all past queries.
+- Your main goal is to explore DIFFERENT interests over time, not just repeat or slightly change the same one.
+
+Rules:
+1. AVOID REPEATING MAIN TOPIC WORDS WHEN POSSIBLE
+   - The MAIN TOPIC word is usually the first word of the query (e.g., "valorant clips" → main topic: "valorant").
+   - Look at all queries in Search History.
+   - Collect all words that are obvious main topics (games, shows, hobbies, etc.).
+   - From the user’s interests, find topics that have NOT been used as main topics in any previous query.
+
+   - If there is at least ONE unused interest:
+     - You MUST choose one of those unused interests as the MAIN TOPIC.
+   - Only if ALL of the user’s main interests have already appeared in Search History:
+     - Then you may reuse a main topic, but change the second word or style (clips, edits, memes, etc.).
+
+2. DIFFERENCE FROM HISTORY
+   - Your new query must NOT be exactly the same as any item in Search History (ignoring capitalization and punctuation).
+   - Prefer to change the MAIN TOPIC completely (e.g., from "valorant clips" to "apex clips").
+   - Do NOT just rotate endlessly between tiny variations of the same thing when there are other interests available.
+
+Examples of GOOD rotation behavior:
+- User Interests: valorant, apex, overwatch, marvel
+- History: ['valorant clips']
+  → New: 'apex clips'
+- Next history: ['valorant clips', 'apex clips']
+  → New: 'overwatch highlights'
+- Next history: ['valorant clips', 'apex clips', 'overwatch highlights']
+  → New: 'marvel edits'
+
+--------------------------------
+STEP-BY-STEP PROCESS
+--------------------------------
+1. Read the User info.
+   - List in your mind 3–10 possible interests (games, hobbies, fandoms, etc.).
+
+2. Check Search History.
+   - For each interest you found, check if that word already appears as a clear main topic in any past query.
+   - Mark interests as:
+     - UNUSED: not present in any Search History query
+     - USED: already present
+
+3. CHOOSE MAIN TOPIC
+   - If there is at least one UNUSED interest:
+     - Pick ONE of the UNUSED interests as your MAIN TOPIC.
+   - If all interests are USED:
+     - Pick ONE of them, but make a clearly different short query than before (different second word or style).
+
+4. BUILD THE QUERY
+   - Use the chosen MAIN TOPIC as the first word.
+   - Optionally add ONE extra word (type/style content) that fits that topic.
+   - Total length: 1–3 words.
+
+   Examples of building:
+   - Topic "valorant" : "valorant clips", "valorant memes"
+   - Topic "apex"     : "apex highlights", "apex edits"
+   - Topic "marvel"   : "marvel fanart", "marvel edits"
+   - Topic "gym"      : "gym motivation", "gym workouts"
+
+5. FINAL CHECK
+   - 1–3 words only.
+   - Focus on ONE interest.
+   - Not a full sentence.
+   - Not exactly any query in Search History.
+   - If there are multiple interests, do NOT keep returning variations of just one of them; choose an interest that has been used the least.
+
+--------------------------------
 WHAT YOU MUST NOT DO
-- Do NOT copy any query from search_history.
+--------------------------------
 - Do NOT output more than one query.
 - Do NOT explain your reasoning.
-- Do NOT mention the steps or the search history in your answer.
-- Do NOT use hashtags (#). Only plain text.
+- Do NOT add any extra text.
+- Do NOT copy weird long phrases from earlier queries.
 
+--------------------------------
 OUTPUT FORMAT (VERY IMPORTANT)
+--------------------------------
 Always respond in EXACTLY this format and nothing else:
 
 Query: [YOUR SEARCH QUERY]
 
-No extra text, no extra lines before or after.
+No extra lines or text before or after.
 
-EXAMPLES
-
-(These are examples. Do NOT copy these queries exactly.)
+--------------------------------
+EXAMPLES (DO NOT COPY THESE EXACT WORDS)
+--------------------------------
 
 Example 1
-User info: Loves Marvel games, online competition, and fast-paced action shooters.
+User Interests: Valorant, Apex, Overwatch, Marvel movies, anime edits
 
-search_history: ['battle royale games with competitive multiplayer',
-                 'marvel battle royale games with competitive multiplayer']
+Search History: ['valorant clips', 'marvel edits']
 
 Assistant:
-Query: marvel hero shooter ranked match highlights
+Query: apex highlights
 
 Example 2
-User info: Likes cozy fantasy games, exploration, and relaxing gameplay.
+User info: gym, powerlifting, running, healthy recipes, anime
 
-search_history: ['cozy fantasy village games',
-                 'relaxing exploration rpgs',
-                 'peaceful open world fantasy']
+Search History: ['gym motivation', 'anime edits']
 
 Assistant:
-Query: slow paced magical farming life sim
+Query: running workouts
 
 Example 3
-User info: Enjoys streetwear fashion, sneakers, and urban photography.
+Interests: gardening, cars, skincare
 
-search_history: ['streetwear outfit ideas',
-                 'urban fashion aesthetic',
-                 'sneaker collection reels']
+Search History: ['gardening tips', 'cars', 'skincare routine']
 
 Assistant:
-Query: edgy city sneaker street style inspiration
-
-REMEMBER
-- ALWAYS make the new query clearly different from search_history.
-- ALWAYS include at least one word that does NOT appear in any history entry.
-- ALWAYS output in this exact format:
-
-Query: [YOUR SEARCH QUERY]
+Query: gardening ideas
 """
 MOOD_INSTRUCTIONS = """
 You are a rewriting assistant for Instagram comments.
@@ -250,6 +316,7 @@ class SocialAgent(SearchAgent):
         self.moods = moods
         self._mood = 0
         self._mood_keys = list(moods.keys())
+        self._interest_index = 0
         # Check if browser is a save browser
         if self._save:
             self.post_history = self.browser.get_data("post_history") or []
@@ -352,8 +419,16 @@ class SocialAgent(SearchAgent):
         return value_dict
     # Generate search query and search on insta feed
     def feed_search(self):
-        messages = [f"User Interests: {", ".join(self.llm.interests)}"]
-
+        # Show 2 interests from index
+        messages = [f"User Interests: {", ".join(self.llm.interests[self._interest_index:self._interest_index + 1])}"]
+        if len(self.llm.interests) > 1:
+            # Add first interest when index reaches the last interest
+            if self._interest_index == len(self.search_history) - 1:
+                messages[0] += ", " + self.search_history[0]
+            # Increment index and cycle back after last index
+            self._interest_index += 1
+            if self._interest_index > len(self.search_history) -1:
+                self._interest_index = 0
         feed_query = self.get_query(
             messages=messages,
             instructions=FEED_QUERY_INPUT,
@@ -402,7 +477,7 @@ class SocialAgent(SearchAgent):
                     # Finally, add expected output format
                     messages.append("[YOUR OUTPUT]:\nInterest: [YOUR % OF INTEREST]\nComment: [YOUR COMMENT]")
                     # Get LLM output
-                    output = self.llm.get_response(messages=messages, temperature=0.3)
+                    output = self.llm.get_response(messages=messages, temperature=0.9, top_p=0.9)
                     print(f"-------------------- LLM INPUT --------------------\n{messages}\n-------------------- LLM OUTPUT --------------------\n{output}")
                     # Extract output values and validate
                     output_values = self.extract_values(output=output)

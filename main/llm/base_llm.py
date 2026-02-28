@@ -4,8 +4,8 @@ from llama_cpp import Llama
 from llama_cpp.llama_chat_format import NanoLlavaChatHandler
 from typing import Optional, List
 
+import re
 import atexit
-import asyncio
 import configparser
 
 # Load config.ini
@@ -37,7 +37,7 @@ class BaseLLM():
         img_instructions:str="", 
         max_tokens:int=128, 
         cuda:bool=True,
-        censor:bool=True
+        filtered_words:List[str]=[]
         ):
         # Setup main chat model
         self.llm = Llama(
@@ -58,10 +58,10 @@ class BaseLLM():
             n_threads=8
             )
         # Initialize variables
+        self.filtered_words = filtered_words
         self.chat_instructions = chat_instructions if len(chat_instructions) > 0 else DEFAULT_CHAT_INSTRUCTIONS
         self.img_instructions = img_instructions if len(img_instructions) > 0 else DEFAULT_IMG_INSTRUCTIONS
         self.max_tokens = max_tokens
-        self.censor = censor
         # Close models on program exit
         atexit.register(self.llm.close)
         atexit.register(self.nanollava.close)
@@ -96,11 +96,6 @@ class BaseLLM():
         # Reconcile messages to list
         if type(messages) == str:
             messages = [messages]
-        # TODO Censor all messages if censoring is enabled
-        if self.censor:
-            for i, m in enumerate(messages):
-                #messages[i] = profanity.censor(messages[i])
-                continue
         # Check for custom instructions
         if instructions == None:
             instructions = self.chat_context + "\n" + self.chat_instructions
@@ -123,6 +118,9 @@ class BaseLLM():
             )
             # Retrieve output message
             output_message = output['choices'][0]['message']['content']
+            # Remove any filtered words
+            for word in self.filtered_words:
+                output_message = re.sub(word, "", output_message, flags=re.IGNORECASE)
             return output_message
         except ValueError:
             print("MAX TOKENS EXCEEDED")

@@ -85,6 +85,7 @@ if loginSuccess:
         "angry": 2,
         "sad": 1
     } 
+    FILTERED_WORDS = ["damn"]
 
     # Create LLM
     GAMER_LLM = SocialMediaLLM(
@@ -97,6 +98,7 @@ if loginSuccess:
         grammar_instructions=GRAMMAR_INSTRUCTIONS,
         sample_responses=SAMPLES,
         slang=SLANG,
+        filtered_words=FILTERED_WORDS
         )
     print("LLM created")
 
