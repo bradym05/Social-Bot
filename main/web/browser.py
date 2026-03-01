@@ -1,4 +1,10 @@
 # Dependencies
+import os
+import time
+import random
+import atexit
+import urllib.parse as url_parse
+
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.virtual_authenticator import VirtualAuthenticatorOptions
@@ -13,10 +19,7 @@ from main.inputs import Typer
 from typing import List, Optional
 from main.utils.chrome import no_indicators
 
-import time
-import random
-import atexit
-import urllib.parse as url_parse
+from .types import VideoCrop
 
 # Settings
 HOME_URL = "https://www.instagram.com/"
@@ -43,7 +46,7 @@ class PostInfo:
         # Yield until comment form loads
         try:
             self.comment_input = WebDriverWait(browser.driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "form")))
-        except TimeoutException as e:
+        except TimeoutException:
             self.comment_input = None
         # Find all buttons
         all_buttons: List[WebElement] = browser.driver.find_elements(By.CSS_SELECTOR, "div[role='button']")
@@ -201,7 +204,7 @@ class Browser:
             try:
                 continueButton = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div[aria-label='Continue']")))
                 print("Login Failed")
-            except TimeoutException as e:
+            except TimeoutException:
                 print("Login Successful")
             # Check if continue button was found
             return not continueButton
@@ -234,7 +237,7 @@ class Browser:
             # Find search bar
             try:
                 search_bar = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.ID, "searchbox_input")))
-            except TimeoutException as e:
+            except TimeoutException:
                 return []
             # Hover search bar
             self.to_element(search_bar)
@@ -252,7 +255,7 @@ class Browser:
                 search_bar.send_keys(Keys.ENTER)
                 try:
                     results_container = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "ol[class='react-results--main']")))
-                except TimeoutException as e:
+                except TimeoutException:
                     return []
                 # Get results from container
                 all_results = results_container.find_elements(By.TAG_NAME, "article")
@@ -288,7 +291,7 @@ class Browser:
             # Reload and wait
             reload_button.click()
             time.sleep(1)
-        except TimeoutException as e:
+        except TimeoutException:
             pass
             
     # Scroll through feed, return array of posts
@@ -401,7 +404,7 @@ class Browser:
             # Get close button
             try:
                 close_button = WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, "//button[text()='Close']")))
-            except TimeoutException as e:
+            except TimeoutException:
                 return False
             # Click close button
             self.to_element(close_button)
@@ -417,7 +420,7 @@ class Browser:
         # Get _aagv class
         try:
             post_info = WebDriverWait(post_anchor, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, "_aagv")))
-        except TimeoutException as e:
+        except TimeoutException:
             return None
         # Validate
         if post_info:
@@ -578,7 +581,7 @@ class Browser:
                 # Wait for header to load first because dialog tab switches
                 WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.XPATH, f"//div[text()='{header}']")))
                 followers_tab = WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div[role='dialog']")))
-            except TimeoutException as e:
+            except TimeoutException:
                 return
             button_name = "follow" if follow else "following"
             # Repeat until at least one button loads
@@ -610,7 +613,7 @@ class Browser:
                             print("FOLLOW COOLDOWN DETECTED")
                             self.cooldown_started = time.time()
                             break
-                        except TimeoutException as e:
+                        except TimeoutException:
                             pass
                         if not follow:
                             # Check if cancel button appeared
@@ -622,7 +625,7 @@ class Browser:
                                 # Click unfollow button
                                 self.to_element(unfollow_button)
                                 unfollow_button.click()
-                            except TimeoutException as e:
+                            except TimeoutException:
                                 pass
                         clicked += 1
                         # Random delay
@@ -678,3 +681,124 @@ class Browser:
         # Unfollow
         unfollowed = self.click_follow_buttons("Following", False, count)
         print(f"Total accounts unfollowed {unfollowed}")
+
+    def get_close_button(self, element:WebElement) -> WebElement | None:
+        """Find common close buttons"""
+        popup_buttons = element.find_elements(By.CSS_SELECTOR, "button")
+        close_button = None
+        for b in popup_buttons:
+            if b.accessible_name.lower() in ["ok", "close", "cancel", "back", "exit"]:
+                close_button = b
+                break
+        return close_button
+    
+    def click_by_element(self, element:WebElement):
+        """Click at element position without using element.click()"""
+        ActionChains(self.driver, random.randint(250, 500)).move_to_element(element).click().perform()
+    
+    def upload_video(self, video_path:str, video_crop:VideoCrop=VideoCrop.Original, caption:str="") -> bool:
+        """
+        Upload and post a video with the given options.
+        
+        Parameters
+        ----------
+        video_path : str
+            The full path to the video file
+        video_crop : VideoCrop
+            Video upload dimensions. Original, Sqaure (1:1), 
+            Portrait (9:16), Landscape (16:9)
+        caption : str | None
+            The post caption. Defaults to "".
+
+        Returns
+        -------
+        bool
+            Indicates if the video upload was successful
+        """
+        # Get create button
+        try:
+            create_button = WebDriverWait(self.driver, 1).until(EC.presence_of_element_located((By.CSS_SELECTOR, "[aria-label='New post']")))
+        except TimeoutException:
+            return False
+        self.click_by_element(create_button)
+        # Get post button
+        try:
+            post_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.LINK_TEXT, "Post")))
+        except TimeoutException:
+            return False
+        # Hover over and click post button
+        self.to_element(post_button)
+        post_button.click()
+        # Get upload form input
+        try:
+            upload_button = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']")))
+        except TimeoutException:
+            return False
+        upload_button.send_keys(os.path.abspath(video_path))
+        # Wait for dialog to load
+        try:
+            WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[role='dialog']")))
+        except TimeoutException:
+            return False
+        # Check for any popups, wait first to load
+        time.sleep(5)
+        main_dialog : WebElement | None = None
+        popup_dialogs : List[WebElement] = self.driver.find_elements(By.CSS_SELECTOR, "[role='dialog']")
+        view_obstructed = False
+        for popup in popup_dialogs:
+            # Skip if this is the upload dialog
+            if len(popup.find_elements(By.CSS_SELECTOR, "video")): 
+                main_dialog = popup
+                continue
+            # Attempt to close
+            view_obstructed = True
+            close_button = self.get_close_button(popup)
+            print("VIEW OBSTRUCTED")
+            # Find 
+            if close_button:
+                self.to_element(close_button)
+                close_button.click()
+                view_obstructed = False
+                print("POPUP CLOSED")
+        # Make sure main dialog loaded, and no popup is obstructing view
+        if main_dialog and not view_obstructed:
+            def click_next():
+                self.click_by_element(WebDriverWait(main_dialog, 5).until(EC.visibility_of_element_located((By.XPATH, "//*[text()='Next']"))))
+            try:
+                # Open crop options
+                crop_menu_button = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "[aria-label='Select crop']")))
+                self.click_by_element(crop_menu_button)
+                # Click chosen crop button
+                crop_button = WebDriverWait(main_dialog, 5).until(EC.visibility_of_element_located((By.XPATH, f"//*[text()='{video_crop}']")))
+                self.click_by_element(crop_button)
+                # Click next button
+                time.sleep(0.5 + random.random())
+                click_next()
+
+                # Wait for edit dialog to load
+                time.sleep(1 + random.random())
+                main_dialog = WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[role='dialog'][aria-label='Edit']")))
+                # Click next button
+                click_next()
+
+                # Wait for post dialog to load
+                time.sleep(1 + random.random())
+                main_dialog = WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[role='dialog'][aria-label='Create new post']")))
+                # Get caption textbox
+                caption_input = WebDriverWait(main_dialog, 5).until(EC.visibility_of_element_located((By.XPATH, "//*[contains(@role, 'textbox')]")))
+                self.typer.type_query(caption, caption_input)
+            except TimeoutException:
+                return False
+                # Wait before sharing
+            time.sleep(1 + random.random())
+            # Share button is outside iframe so cant use xpath
+            shared = False
+            all_buttons = main_dialog.find_elements(By.CSS_SELECTOR, "[role='button']")
+            # Search for share button
+            for b in all_buttons:
+                if b.accessible_name == "Share":
+                    shared = True
+                    self.click_by_element(b)
+                    print("POST SHARED")
+                    break
+            return shared
