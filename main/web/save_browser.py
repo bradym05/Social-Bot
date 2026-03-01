@@ -2,11 +2,15 @@
 from main.web import Browser
 from os import path, mkdir
 
+import json
 import pickle
 
 # SETTINGS
+SAVE_ATTRIBUTES = [ # Browser attributes that persist
+    "cooldown_started"
+]
 SAVE_FOLDER = "datastore"
-SAVE_PATH = SAVE_FOLDER + "\\browser.pkl"
+SAVE_PATH = SAVE_FOLDER + "/{key}.json"
 LOAD_KEYS = []
 
 # Declare save browser subclass
@@ -16,6 +20,8 @@ class SaveBrowser(Browser):
 
     Attributes
     ----------
+    key : str
+        Save file name, defaults to browser
     username : str
         Your instagram account username.
     timeout_exit : bool
@@ -24,11 +30,11 @@ class SaveBrowser(Browser):
         Callback when an unhandled TimeoutException occurs.
     """
     # Initialize object
-    def __init__(self, *args, **kwargs):
+    def __init__(self, key:str="browser", *args, **kwargs):
         # Initialize from superclass
         super(SaveBrowser, self).__init__(*args, **kwargs)
         # Initialize variables
-        self.custom_data = {}
+        self.save_path = SAVE_PATH.format(key=key)
         self._cookies = []
         self._logged_in = False
         self._save = True
@@ -36,10 +42,10 @@ class SaveBrowser(Browser):
     # Override login function
     def login(self, **kwargs):
         # Load data
-        if path.exists(SAVE_PATH):
-            with open(SAVE_PATH, 'rb') as f:
+        if path.exists(self.save_path):
+            with open(self.save_path, 'r') as f:
                 # Load data
-                self.data = pickle.load(f)
+                self.data = json.load(f)
                 # Load attributes
                 if 'attributes' in self.data.keys():
                     for attribute, value in self.data['attributes'].items():
@@ -71,19 +77,18 @@ class SaveBrowser(Browser):
         # Make sure login was successful first
         if self._logged_in:
             # Save attributes
-            self.data["attributes"] = {
-                "cooldown_started": self.cooldown_started
-            }
+            for k in SAVE_ATTRIBUTES:
+                self.data["attributes"][k] = getattr(self, k)
             # Write save file accordingly
-            if path.exists(SAVE_PATH):
-                mode = 'wb'
+            if path.exists(self.save_path):
+                mode = 'w'
             else:
-                mode = 'xb'
+                mode = 'x'
                 # Check if folder exists before creating new save file
                 if not path.exists("datastore"):
                     mkdir(SAVE_FOLDER)
-            with open(SAVE_PATH, mode) as f:
-                pickle.dump(self.data, f)
+            with open(self.save_path, mode) as f:
+                json.dump(self.data, f, indent=4)
             print("Session saved successfully")
             # Close normally
             Browser._close(self)

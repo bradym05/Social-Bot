@@ -606,7 +606,7 @@ class Browser:
                         follow_button.click()
                         # Check if on cooldown first
                         try:
-                            WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, "//*[text()='Try Again Later']")))
+                            WebDriverWait(self.driver, 0.5).until(EC.visibility_of_element_located((By.XPATH, "//*[text()='Try Again Later']")))
                             print("FOLLOW COOLDOWN DETECTED")
                             self.cooldown_started = time.time()
                             break
@@ -615,7 +615,7 @@ class Browser:
                         if not follow:
                             # Check if cancel button appeared
                             try:
-                                cancel_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Cancel']")))
+                                cancel_button = WebDriverWait(self.driver, 0.5).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Cancel']")))
                                 # Get unfollow button
                                 unfollow_dialog = cancel_button.find_element(By.XPATH, "..")
                                 unfollow_button = unfollow_dialog.find_element(By.XPATH, "//button[text()='Unfollow']")
@@ -626,7 +626,7 @@ class Browser:
                                 pass
                         clicked += 1
                         # Random delay
-                        time.sleep(1 + random.random())
+                        time.sleep(random.random()/2)
                         # Check count
                         if clicked >= count:
                             break
