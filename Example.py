@@ -2,6 +2,7 @@
 from main.llm import SocialMediaLLM
 from main.web import SaveBrowser
 from main.agents import SocialAgent
+from main.web.types import VideoCrop
 
 import time
 
@@ -110,9 +111,11 @@ if loginSuccess:
         )
     print("Agent created")
 
-    # Run 20 processes
+    # Example usage
     # 1 process = interact with [n_posts] number of posts
-    for _ in range(20):
-        print("NEW PROCESS")
-        agent.process()
-        time.sleep(2)
+    agent.process() 
+    browser.upload_video(
+        video_path="/videos/video.mp4",
+        video_crop=VideoCrop.Original,
+        caption="My first autonomous video upload #instagram #video"
+    )
