@@ -40,7 +40,30 @@ class SaveBrowser(Browser):
         self._save = True
 
     # Override login function
-    def login(self, **kwargs):
+
+    # Login using sessionid cookie or password
+    def login(self, sessionid:str|None=None, password:str|None=None) -> bool:
+        """
+        Login has two options:
+        - Login by adding your account's sessionid cookie: This option will work
+        reliably but Instagram may not allow you to upload videos.
+        - Login with password: This can fail and may require you to retry several 
+        times before succeeding. Use this if Instagram blocks video uploads.
+        
+        Parameters
+        ----------
+        sessionid : str | None
+            The VALUE of your sessionid cookie. You can obtain this by logging in to
+            instagram on chrome and navigating to the application tab in
+            inspect element. It will be in storage/cookies/https://www.instagram.com
+        password : str | None
+            Your instagram account's password.
+        
+        Returns
+        -------
+        bool
+            The result of the login attempt
+        """
         # Load data
         if path.exists(self.save_path):
             with open(self.save_path, 'r') as f:
@@ -50,12 +73,13 @@ class SaveBrowser(Browser):
                 if 'attributes' in self.data.keys():
                     for attribute, value in self.data['attributes'].items():
                         setattr(self, attribute, value)
-                # Load sessionid
-                if 'sessionid' in self.data.keys():
-                    self._logged_in = Browser.login(self, sessionid=self.data['sessionid'])
-                    return self._logged_in
+                # Load sessionid unless password is given
+                if not password:
+                    if 'sessionid' in self.data.keys():
+                        self._logged_in = Browser.login(self, sessionid=self.data['sessionid'])
+                        return self._logged_in
         # Call base function, store result and return
-        self._logged_in = Browser.login(self, **kwargs)
+        self._logged_in = Browser.login(self, sessionid=sessionid, password=password)
         # Save session id if login was successful
         if self._logged_in == True:
             cookie = self.driver.get_cookie("sessionid")

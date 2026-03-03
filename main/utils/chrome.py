@@ -23,12 +23,29 @@ def no_indicators():
     """
     # Setup options
     options = webdriver.ChromeOptions()
+    options.add_argument("--force-device-scale-factor=1")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"]) 
     options.add_experimental_option("useAutomationExtension", False)
-    # Create and return driver
+    options.add_argument("--password-store=basic")
+    options.add_experimental_option(
+        "prefs",
+        {
+            "credentials_enable_service": False,
+            "profile.password_manager_enabled": False,
+        },
+    )
+    # Create driver
     driver = webdriver.Chrome(options=options)
+    # Use CDP to override device metrics natively
+    driver.execute_cdp_cmd("Emulation.setDeviceMetricsOverride", {
+        "width":0,
+        "height":0,
+        "deviceScaleFactor": 1.25, 
+        "mobile": False
+    })
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})") 
     # Custom scripts
     remove_cdp_props(driver)
+
     return driver

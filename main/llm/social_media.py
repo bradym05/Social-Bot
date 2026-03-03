@@ -42,8 +42,8 @@ class SocialMediaLLM(BaseLLM):
         example: "*lol: Laughing out loud"
     filtered_words : List[str] | None
         Words to be removed from responses (case insensitive)
-    max_tokens : int
-        LLM max response tokens
+    max_tokens : int | None
+        LLM max tokens for both models. Defaults to 128.
     
     """
     # Initialize

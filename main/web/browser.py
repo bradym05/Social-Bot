@@ -146,13 +146,14 @@ class Browser:
     def to_element(self, element):
         ActionChains(self.driver, 250 + random.random() * 500).move_to_element_with_offset(element, random.randint(-2, 2), random.randint(-1, 1))
 
-    # Login using sessionid cookie
+    # Login using sessionid cookie or password
     def login(self, sessionid:str|None=None, password:str|None=None) -> bool:
         """
         Login has two options:
-        - Login by adding your account's sessionid cookie (recommended) 
-        - Attempt to login w/ password. This is likely to fail and may require you
-        to retry several times before succeeding.
+        - Login by adding your account's sessionid cookie: This option will work
+        reliably but Instagram may not allow you to upload videos.
+        - Login with password: This can fail and may require you to retry several 
+        times before succeeding. Use this if Instagram blocks video uploads.
         
         Parameters
         ----------
@@ -198,7 +199,7 @@ class Browser:
             passwordField.send_keys(Keys.ENTER)
             # Wait for next page to load
             try:
-                WebDriverWait(self.driver, 10).until(EC.staleness_of(passwordField))
+                WebDriverWait(self.driver, 120).until(EC.staleness_of(passwordField))
             except TimeoutException as e:
                 self._on_timeout(e)
             # Wait for continue button, catch timeout error WITHOUT exiting program (if this button appears it means the login failed)
@@ -808,7 +809,8 @@ class Browser:
                 if shared:
                     # Wait for post to finish uploading 
                     try:
-                        main_dialog = WebDriverWait(self.driver, UPLOAD_TIMEOUT, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[role='dialog'][aria-label='Post shared']")))
+                        main_dialog = WebDriverWait(self.driver, UPLOAD_TIMEOUT, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "[role='dialog'][aria-label*='shared']")))
+                        print("UPLOAD SUCCESS")
                         return True
                     except TimeoutException:
                         print("VIDEO UPLOAD TIMED OUT")
