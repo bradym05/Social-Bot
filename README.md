@@ -6,10 +6,22 @@ Automatically scroll through instagram, like posts, and follow people using AI. 
 - Grammar Instructions
 - Sample Responses
 - Slang
+- Role
+- Platform Usage
 
 First, a query is generated to search for instagram posts based on a list of interests. A post is chosen at random, and its thumbnail is sent to the image-text model to generate a short description of the image. This description along with the comments, image alt text, and post caption are used to generate a search query to fill in any gaps (current events, up to date information, etc). This information is combined into one prompt for the text model which will return two values:
 - INTEREST %: The LLM determines to what extent the given post aligns with its personality
 - COMMENT: The LLM makes informed comments by reviewing other user's comments, and searching the internet for relevant information
+
+Features:
+- Login to account
+- Generate queries and search on feed
+- Scroll through feed
+- Like posts that match interests
+- Comment on posts that match interests
+- Follow the followers of users who make posts that match interests
+- Crop and upload videos
+- Research post topics on DuckDuckGo before commenting
 
 For more information, see this [Example](Example.py)
 
