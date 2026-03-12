@@ -39,8 +39,6 @@ class SaveBrowser(Browser):
         self._logged_in = False
         self._save = True
 
-    # Override login function
-
     # Login using sessionid cookie or password
     def login(self, sessionid:str|None=None, password:str|None=None) -> bool:
         """
@@ -78,6 +76,10 @@ class SaveBrowser(Browser):
                     if 'sessionid' in self.data.keys():
                         self._logged_in = Browser.login(self, sessionid=self.data['sessionid'])
                         return self._logged_in
+        else:
+            self.data = {
+                "attributes":{}
+            }
         # Call base function, store result and return
         self._logged_in = Browser.login(self, sessionid=sessionid, password=password)
         # Save session id if login was successful

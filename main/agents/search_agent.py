@@ -7,43 +7,42 @@ from typing import List
 # SETTINGS
 MAX_HISTORY_LENGTH = 10 # Delete search history after this length
 QUERY_INPUT = """
-You will be given information from an instagram post.\n
-Generate a standalone search query to find relevant information. You output your search query in this format:\n
-    Query: [YOUR SEARCH QUERY] \n
+You will be given information from an instagram post.
+Generate a standalone search query to find relevant information. You output your search query in this format:
+    Query: [YOUR SEARCH QUERY] 
 
 Here are some examples:
     [INPUT]
-    POST CAPTION: The best open world games
-    IMAGE DESCRIPTION: A man standing in front of the distant moon at night
-    POST COMMENTS: Tlou and Uncharted???, Cyberpunk > Elden Ring, This gotta be bait, This list is… rly fuckin bad.
+    POST CAPTION: My secret to the crispiest sourdough bread at home 🥖✨
+    IMAGE DESCRIPTION: A beautifully scored sourdough loaf fresh out of the oven resting on a cooling rack
+    POST COMMENTS: What hydration level did you use?, Do you bake it in a Dutch oven?, Looks amazing, recipe please!
 
     [YOUR OUTPUT]
-    Query: "What is the best open world game"
-    \n
+    Query: "How to make crispy sourdough bread in a Dutch oven"
+    
     [INPUT]
-    POST CAPTION: LEAVE JOE ALONE HES BEEN THROUGH ENOUGH ALREADY 😫😭😤🦧
-    IMAGE DESCRIPTION: An illustration of a plane with cartoon characters in the seats
-    POST COMMENTS: WE RIDE AT DAWN!!, Let’s go save Joe. Who’s with me button —>, He’s just a baby 😭
+    POST CAPTION: Hidden gem in Kyoto! You have to add this to your itinerary ⛩️🍃
+    IMAGE DESCRIPTION: A peaceful, moss-covered garden with a small stone bridge and tall trees
+    POST COMMENTS: Is this Giouji Temple?, Going to Japan next month, saving this!, How early do you need to get there to avoid crowds?
 
     [YOUR OUTPUT]
-    Query: "Who is Joe from the plane?"
-    \n
+    Query: "Giouji Temple Kyoto moss garden"
+    
     [INPUT]
-    POST CAPTION: That’s enchanted with stick drift II 😭
-    IMAGE DESCRIPTION: A picture of a console wrapped in plastic with a controller on top
-    POST COMMENTS: Only a monster could do this, I do this everyday at work, When you find some good ass armor but it has curse of binding on it
+    POST CAPTION: She absolutely devoured this look on the red carpet tonight 📸🔥
+    IMAGE DESCRIPTION: A celebrity wearing a vintage, dramatic sheer black dress with sharp shoulders
+    POST COMMENTS: Mugler 1995 archive!!, Who is the designer?, Her stylist deserves a raise.
 
     [YOUR OUTPUT]
-    Query: "What is stick drift on consoles"
-    \n
+    Query: "Mugler 1995 archive sheer black dress"
+    
     [INPUT]
-    POST CAPTION: 40 video games releasing in 2026 🎮
-    IMAGE DESCRIPTION: A picture of a grid of game logos
-    POST COMMENTS: Fable oh how I've missed you 😍, And I got money for none of em, Fable?!?!?!😍, You’re forgetting subnautica 2
+    POST CAPTION: Finally finished the DIY archway in the living room! 🛠️🎨
+    IMAGE DESCRIPTION: A time-lapse photo showing a person applying joint compound to a curved hallway entrance
+    POST COMMENTS: Did you use drywall or MDF for the curve?, This is exactly what I want to do in my hallway, What brand of plaster did you use?
 
     [YOUR OUTPUT]
-    Query: "What is the game Fable about"
-    \n
+    Query: "How to build a DIY arched doorway with drywall and MDF"
 """
 
 # Declare search browser agent class
