@@ -29,7 +29,15 @@ For more information, see this [Example](Example.py)
 
 [![Demo Video Thumbnail](https://img.youtube.com/vi/efR3fxPRBXo/0.jpg)](https://www.youtube.com/watch?v=efR3fxPRBXo)
 
-## Requirements Installation
+## Installation
+
+Requirements:
+
+    - Python 3.12
+    - C compiler
+        - Linux: gcc or clang
+        - Windows: Visual Studio or MinGW
+        - MacOS: Xcode
 
 To get started with this project, you need to install the required packages. Follow the steps below:
 
